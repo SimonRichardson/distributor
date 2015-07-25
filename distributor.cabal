@@ -1,0 +1,34 @@
+name:                distributor
+version:             0.0.0.0
+synopsis:            Distributor for things.
+homepage:            https://github.com/SimonRichardson/distributor
+license:             MIT
+license-file:        LICENSE
+author:              Simon Richardson
+maintainer:          stickupkid@gmail.com
+category:            Web
+build-type:          Simple
+cabal-version:       >=1.10
+
+executable distributor
+  main-is:              Server.hs
+  hs-source-dirs:       src
+  build-depends:        scotty >= 0.6,
+                        wai, 
+                        wai-extra,
+                        network,
+                        network-uri,
+                        http-types,
+                        persistent, 
+                        persistent-mongoDB,
+                        template-haskell, 
+                        persistent-template,
+                        containers, 
+                        random, 
+                        mtl, 
+                        text,
+                        monad-control,
+                        base >= 4.6 && < 5
+  ghc-options:          -threaded -O -Wall -fno-warn-unused-do-bind
+  default-extensions:   OverloadedStrings
+  default-language:     Haskell2010
