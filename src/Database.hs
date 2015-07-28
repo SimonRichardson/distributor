@@ -8,7 +8,7 @@
 {-# LANGUAGE TypeFamilies         #-}
 {-# LANGUAGE TypeSynonymInstances #-}
 
-module DatabaseConn where
+module Database where
 
 import           Data.Text (Text, pack, unpack, breakOn)
 import qualified Data.Text as T

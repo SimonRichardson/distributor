@@ -12,14 +12,12 @@ import Network.HTTP.Types.Method (StdMethod(OPTIONS))
 import Network.Wai (Middleware)
 import Network.Wai.Middleware.AddHeaders
 
-import           DatabaseConn
+import           Database
 import           Database.Persist hiding (get)
 import qualified Database.Persist as DB
 
 import Data.Aeson
 import Data.Maybe (fromMaybe)
-
-import Debug.Trace
 
 import System.Environment (getEnvironment)
 
@@ -30,13 +28,13 @@ main = do
   conn <- getEnvDef "MONGOLAB_URI" devMongo >>= return . parseDatabaseUrl
   port <- fmap read $ getEnvDef "PORT" "8000"
 
-  let conf = mongoConfFrom x
+  let conf = mongoConfFrom conn
 
   pool <- createPoolConfig conf
   scotty port (app conf pool)
 
   where
-    devMongo = "mongodb://127.0.0.1:27017/dice"
+    devMongo = "mongodb://:@127.0.0.1:27017/dice"
     getEnvDef e d = getEnvironment >>= return . fromMaybe d . lookup e
 
 allowCors :: Middleware
@@ -56,8 +54,7 @@ app conf pool = do
   opt "/" $ "GET"
   get "/" $ do
     events <- getEvents
-    let x = (trace "here") events
-    W.json $ toOutput <$> (if null x then [] else x)
+    W.json $ toOutput <$> events
 
   where
     runDB action          = liftIO $ runPool conf action pool
