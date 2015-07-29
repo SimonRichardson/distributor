@@ -16,7 +16,6 @@ import           Database
 import           Database.Persist hiding (get)
 import qualified Database.Persist as DB
 
-import Data.Aeson
 import Data.Maybe (fromMaybe)
 
 import System.Environment (getEnvironment)
@@ -34,7 +33,7 @@ main = do
   scotty port (app conf pool)
 
   where
-    devMongo = "mongodb://:@127.0.0.1:27017/dice"
+    devMongo = "mongodb://127.0.0.1:27017/events"
     getEnvDef e d = getEnvironment >>= return . fromMaybe d . lookup e
 
 allowCors :: Middleware
@@ -54,15 +53,12 @@ app conf pool = do
   opt "/" $ "GET"
   get "/" $ do
     events <- getEvents
-    W.json $ toOutput <$> events
+    W.json $ ((extract <$> events) :: [M.Event])
 
   where
-    runDB action          = liftIO $ runPool conf action pool
-    getEvents             = runDB $ DB.selectList [] []
-    -- move to model.hs
-    toOutput (Entity _ s) = object [ "name"        .= eventName s
-                                   , "description" .= eventDescription s
-                                   ]
+    runDB action         = liftIO $ runPool conf action pool
+    getEvents            = runDB $ DB.selectList [] []
+    extract (Entity _ s) = s
     
     opt route opts  = addroute OPTIONS route $ do
       setHeader "Access-Control-Allow-Methods" opts

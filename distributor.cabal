@@ -30,7 +30,8 @@ executable distributor
                         monad-control,
                         base >= 4.6 && < 5,
                         aeson,
-                        time
+                        time,
+                        bson
   ghc-options:          -threaded -O -Wall -fno-warn-unused-do-bind
   default-extensions:   OverloadedStrings
   default-language:     Haskell2010

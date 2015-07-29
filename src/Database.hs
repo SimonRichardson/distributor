@@ -20,7 +20,6 @@ import Control.Monad.Trans (MonadIO)
 import Network (PortID (PortNumber))
 import Network.URI
 
-
 type DatabaseConnInfo = [(Text, Text)]
 
 parseDatabaseUrl :: String -> DatabaseConnInfo
@@ -36,16 +35,21 @@ parseDatabaseUrl durl =
         (user,password) = userAndPassword auth
      in
       [ (pack "user",     user)
-      , (pack "password", T.tail password)
+      , (pack "password", maybe "" (const $ T.tail password) (T.uncons password))
       , (pack "host",     pack $ uriRegName auth)
       , (pack "port",     pack $ tail $ uriPort auth)
       , (pack "dbname",   pack $ tail $ dbpath)
       ]
   where
     userAndPassword :: URIAuth -> (Text, Text)
-    userAndPassword = (breakOn $ pack ":") . pack . init . uriUserInfo
+    userAndPassword x = do
+      let y = uriUserInfo x
+      case T.uncons $ pack $ y of
+        Nothing -> (pack "", pack "")
+        Just _  -> (breakOn $ pack ":") . pack . init $ y
+
     schemeError uri = error $ "was expecting a mongodb scheme, not: " ++ (uriScheme uri) ++ "\n" ++ (show uri)
-    invalid = error "could not parse heroku MONGOLAB_URI"
+    invalid         = error "could not parse heroku MONGOLAB_URI"
 
 mongoConfFrom :: DatabaseConnInfo -> MongoConf
 mongoConfFrom params = MongoConf {

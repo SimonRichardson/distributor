@@ -9,25 +9,28 @@
 {-# LANGUAGE TypeSynonymInstances       #-}
 {-# LANGUAGE MultiParamTypeClasses      #-}
 {-# LANGUAGE GeneralizedNewtypeDeriving #-}
-{-# LANGUAGE DeriveGeneric              #-}
 
 module Model where
 
-import Data.Aeson (ToJSON)
+import Data.Aeson (ToJSON, toJSON, (.=), object)
 
 import Database.Persist.MongoDB hiding (master)
 import Database.Persist.TH
-
-import GHC.Generics
 
 import Language.Haskell.TH.Syntax
 
 let mongoSettings = (mkPersistSettings (ConT ''MongoContext)) { mpsGeneric = False }
  in share [mkPersist mongoSettings] [persistLowerCase|
-Event
-    name String
+Event sql=events
+    ident       ObjectId sql=_id
+    name        String
     description String
-    deriving Show Generic
+    deriving    Show 
 |]
 
-instance ToJSON Event
+instance ToJSON Event where
+  toJSON (Event ident name description) = 
+      object [ "_id"         .= show ident
+             , "name"        .= name
+             , "description" .= description
+             ]
