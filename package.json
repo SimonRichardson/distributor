@@ -1,0 +1,51 @@
+{
+  "name": "distributor",
+  "description": "distributor",
+  "author": "Simon Richardson <stickupkid@gmail.com> (https://github.com/SimonRichardson)",
+  "homepage": "https://github.com/SimonRichardson/distributor",
+  "private": true,
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/SimonRichardson/distributor.git"
+  },
+  "dependencies": {
+    "daggy": "^0.x.x",
+    "fantasy-combinators": "^0.x.x",
+    "fantasy-eithers": "^0.x.x",
+    "fantasy-sorcery": "^0.x.x",
+    "fantasy-helpers": "^0.x.x",
+    "fantasy-states": "^0.x.x",
+    "fantasy-lenses": "^0.x.x",
+    "fantasy-tuples": "^0.x.x",
+    "fantasy-cofrees": "git+https://github.com/fantasyland/fantasy-cofrees.git",
+    "fantasy-identities": "git+https://github.com/fantasyland/fantasy-identities.git",
+    "fantasy-options": "git+https://github.com/fantasyland/fantasy-options.git",
+    "fantasy-writers": "git+https://github.com/fantasyland/fantasy-writers.git",
+    "fantasy-readers": "git+https://github.com/fantasyland/fantasy-readers.git",
+    "fantasy-frees": "^0.x.x",
+    "fantasy-io": "git+https://github.com/fantasyland/fantasy-io.git"
+  },
+  "devDependencies": {
+    "grunt-cli": "0.1.9",
+    "grunt": "0.4.x",
+    "grunt-contrib-jshint": "0.6.x",
+    "grunt-contrib-nodeunit": "0.2.0",
+    "fantasy-check": "^0.1.x"
+  },
+  "scripts": {
+    "test": "grunt"
+  },
+  "files": [
+    "src/*.js",
+    "src/**/*.js"
+  ],
+  "main": "distributor.js",
+  "version": "0.0.1",
+  "bugs": {
+    "url": "https://github.com/SimonRichardson/distributor/issues"
+  },
+  "directories": {
+    "test": "test"
+  },
+  "keywords": [ ]
+}
