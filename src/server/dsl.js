@@ -1,20 +1,20 @@
-var daggy = require('daggy'),
-    Free  = require('fantasy-frees').Free,
+const daggy = require('daggy'),
+      Free  = require('fantasy-frees').Free,
 
-    Server = daggy.taggedSum({
-        Create: ['routes'],
-        Listen: ['x', 'port']
-    });
+      Server = daggy.taggedSum({
+        Create: ['handle'],
+        Listen: ['x', 'port', 'on']
+      });
 
-function create(x) {
-    return Free.liftFC(Server.Create(x));
+function create(handle) {
+  return Free.liftFC(Server.Create(handle));
 }
 
-function listen(x, y) {
-    return Free.liftFC(Server.Listen(x, y));
+function listen(x, port, on) {
+  return Free.liftFC(Server.Listen(x, port, on));
 }
 
 module.exports = {
-    create: create,
-    listen: listen
+  create: create,
+  listen: listen
 };

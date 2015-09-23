@@ -1,15 +1,23 @@
-var server = require('./server/dsl'),
-    http   = require('./server/http');
+const server = require('./server/dsl'),
+      http   = require('./server/http');
 
-function createServer(routes, port) {
-    return server.create(routes).chain((x) => {
-        return server.listen(x, port);
+function createServer(handle, port, done) {
+    return server.create(handle).chain((x) => {
+      return server.listen(x, port, done);
     });
 }
 
 function main() {
-    var script = createServer({}, 8080);
-    http.run(script).unsafePerform();
+    const handle = (req, res) => {
+            console.log("here", req, res);
+          },
+          start = (port) => {
+            console.log("Listening on port:", port);
+          },
+          program = createServer(handle, 8080, start),
+          server  = http.run(program);
+
+    server.unsafePerform();
 }
 
 main();
