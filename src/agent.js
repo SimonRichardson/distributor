@@ -1,31 +1,40 @@
-const server = require('./server/dsl'),
-      http   = require('./server/http'),
-
-      Option = require('fantasy-options'),
-
-      url = require('url');
+const router = require('./router/router'),
+      server = require('./server/server'),
+      
+      Option = require('fantasy-options');
 
 function createServer(handle, port, done) {
-    return server.create(handle).chain(x => {
-      return server.listen(x, port, done);
+  const dsl = server.dsl;
+  return dsl.options({}).chain(x => {
+    return dsl.create(x, handle).chain(y => {
+      return dsl.listen(y, port, done);
     });
+  });
 }
 
-function main() {
-    const handle = (req, res) => {
-            /*
-            var program = router.compile(x).chain(x => {
+function createRoutes(routes) {
+  const dsl = router.dsl;
+  return dsl.compile(routes);
+} 
 
-            })*/
-            console.log("HERE", req.url);
+function main() {
+    const routes = {
+            "get": {
+              "/users": () => x => x,
+              "/users/:id": () => x => x,
+              "/users/:": () => x => x
+            }
+          },
+          paths = router.compile(createRoutes(routes)),
+          handle = (req, res) => {
+            // TODO : match url against the compiled routes
           },
           start = (port) => {
             console.log("Listening on port:", port);
           },
-          program = createServer(handle, 8080, Option.Some(start)),
-          server  = http.run(program);
+          program = createServer(handle, 8080, Option.Some(start));
 
-    server.unsafePerform();
+    server.run(program).unsafePerform();
 }
 
 main();

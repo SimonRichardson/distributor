@@ -23,7 +23,8 @@
     "fantasy-writers": "git+https://github.com/fantasyland/fantasy-writers.git",
     "fantasy-readers": "git+https://github.com/fantasyland/fantasy-readers.git",
     "fantasy-frees": "^0.x.x",
-    "fantasy-io": "git+https://github.com/fantasyland/fantasy-io.git"
+    "fantasy-io": "git+https://github.com/fantasyland/fantasy-io.git",
+    "fantasy-arrays": "git+https://github.com/SimonRichardson/fantasy-arrays"
   },
   "devDependencies": {
     "grunt-cli": "0.1.9",
