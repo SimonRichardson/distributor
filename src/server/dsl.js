@@ -1,3 +1,5 @@
+'use strict';
+
 const daggy = require('daggy'),
       Free  = require('fantasy-frees').Free,
 
@@ -6,15 +8,7 @@ const daggy = require('daggy'),
         Listen: ['x', 'port', 'on']
       });
 
-function create(handle) {
-  return Free.liftFC(Server.Create(handle));
-}
-
-function listen(x, port, on) {
-  return Free.liftFC(Server.Listen(x, port, on));
-}
-
 module.exports = {
-  create: create,
-  listen: listen
+  create: handle        => Free.liftFC(Server.Create(handle)),
+  listen: (x, port, on) => Free.liftFC(Server.Listen(x, port, on))
 };

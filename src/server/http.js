@@ -1,3 +1,5 @@
+'use strict';
+
 const IO   = require('fantasy-io'),
       C    = require('fantasy-combinators'),
       Free = require('fantasy-frees').Free,
@@ -10,23 +12,17 @@ function interpreter(free) {
   return free.cata({
     Create: (handle) => {
       return IO(() => {
-        return http.createServer((req, res) => {
-          handle(req, res);
-        });
+        return http.createServer((req, res) => handle(req, res));
       });
     },
     Listen: (x, port, on) => {
       return IO(() => {
-        x.listen(port, () => {
-          return on(port);
-        });
+        return x.listen(port, () => on.map(f => f(port)));
       });
     }
   });
 }
 
 module.exports = {
-  run: (x) => {
-    return Free.runFC(x, interpreter, IO);
-  }
+  run: x => Free.runFC(x, interpreter, IO)
 };
