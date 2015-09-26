@@ -9,12 +9,10 @@ const Free   = require('fantasy-frees').Free,
 function interpreter(free) {
   return free.cata({
     Compile: routes => {
-      console.log(routes);
-
-      // for(var k in routes["get"]) {
-      //   console.log(k, path.compile(k));
-      // }
-
+      const x = routes.rmap(x => {
+        return path.compile(x);
+      });
+      // fold into a tree
       return Writer.of({});
     }
   });

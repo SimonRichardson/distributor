@@ -19,7 +19,7 @@ function createRoutes(routes) {
 
 function main() {
     const routes = router.get()
-              .route('/users')
+              .route('/Users')
               .route('/users/:id')
               .route('/users/:'),
           paths = router.compile(createRoutes(routes)),

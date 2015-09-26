@@ -9,6 +9,7 @@ const daggy    = require('daggy'),
       Either   = require('fantasy-eithers'),
 
       constant = C.constant,
+      identity = C.identity,
 
       PathNode = daggy.taggedSum({
         Name    : ['x'],
@@ -21,6 +22,7 @@ const daggy    = require('daggy'),
         Filter: ['x'],
         Split : ['x'],
         Token : ['x'],
+        Format: ['x'],
         Valid : ['x']
       });
 
@@ -36,15 +38,21 @@ function token(x) {
   return Free.liftFC(Path.Token(x));
 }
 
+function format(x) {
+  return Free.liftFC(Path.Format(x));
+}
+
 function valid(x) {
   return Free.liftFC(Path.Valid(x));
 }
 
 function program(x) {
-  return split(x).chain(y => {
-    return filter(y).chain(z => {
-      return token(z).chain(v => {
-        return valid(v);
+  return split(x).chain(x => {
+    return filter(x).chain(x => {
+      return token(x).chain(x => {
+        return format(x).chain(x => {
+          return valid(x);
+        });
       });
     });
   });
@@ -70,6 +78,17 @@ function type(x) {
   }).getOrElse(PathNode.Empty);
 }
 
+function normalise(x) {
+  return x.cata({
+    Name: y => {
+      return PathNode.Name(y.map(z => z.toLowerCase()));
+    },
+    Variable: constant(x),
+    Wildcard: constant(x),
+    Empty: constant(x)
+  });
+}
+
 function empty() {
   return x => {
     return x.cata({
@@ -89,6 +108,9 @@ function interpreter(free) {
     },
     Token: x => {
       return x.map(type);
+    },
+    Format: x => {
+      return x.map(normalise);
     },
     Valid: x => {
       const v = x.filter(x => {
