@@ -11,9 +11,9 @@ function interpreter(free) {
     Compile: routes => {
       console.log(routes);
 
-      for(var k in routes["get"]) {
-        console.log(k, path.compile(k));
-      }
+      // for(var k in routes["get"]) {
+      //   console.log(k, path.compile(k));
+      // }
 
       return Writer.of({});
     }

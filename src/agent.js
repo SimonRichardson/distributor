@@ -18,13 +18,10 @@ function createRoutes(routes) {
 } 
 
 function main() {
-    const routes = {
-            "get": {
-              "/users": () => x => x,
-              "/users/:id": () => x => x,
-              "/users/:": () => x => x
-            }
-          },
+    const routes = router.get()
+              .route('/users')
+              .route('/users/:id')
+              .route('/users/:'),
           paths = router.compile(createRoutes(routes)),
           handle = (req, res) => {
             // TODO : match url against the compiled routes
