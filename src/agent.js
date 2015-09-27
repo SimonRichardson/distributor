@@ -19,9 +19,9 @@ function createRoutes(routes) {
 
 function main() {
     const routes = router.get()
-              .route('/Users')
-              .route('/users/:id')
-              .route('/users/:'),
+              .route('/events')
+              .route('/events/:id')
+              .route('/events/:id/tickets'),
           paths = router.compile(createRoutes(routes)),
           handle = (req, res) => {
             // TODO : match url against the compiled routes
@@ -30,6 +30,8 @@ function main() {
             console.log("Listening on port:", port);
           },
           program = createServer(handle, 8080, Option.Some(start));
+
+    console.log(paths.run());
 
     server.run(program).unsafePerform();
 }

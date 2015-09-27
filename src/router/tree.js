@@ -1,3 +1,5 @@
+'use strict';
+
 const daggy  = require('daggy'),
       Option = require('fantasy-options'),
       Seq    = require('fantasy-arrays').Seq,
@@ -35,8 +37,7 @@ Tree.prototype.match = function(f) {
       f(a, t.x, c).cata({
         Some: x => {
           return t.y.foldl((acc, a) => {
-            return a.length() < 1 ? acc :
-              return go(acc, a, c+1);
+            return a.length() < 1 ? acc : go(acc, a, c+1);
           });
         },
         None: constant(l)
@@ -45,7 +46,7 @@ Tree.prototype.match = function(f) {
   return go(Seq.empty(), this, 0);
 };
 
-Tree.prototype.combine = function(f, a, b) {
+Tree.prototype.combine = function(f, b) {
   const go = function(a, b) {
       return a.chain(x => {
         return x.length() < 0 ? Seq.of(x) : rec(x);
@@ -55,14 +56,14 @@ Tree.prototype.combine = function(f, a, b) {
       const val = x.x,
             combined = b.foldl((acc, y) => {
               return y.length() < 0 ? acc :
-                return f(y.x, val).cata({
+                f(y.x, val).cata({
                   Some: x => Option.of(x),
                   None: constant(acc)
                 });
             }, Option.None),
             merged = b.Partition(x => {
               return x.length() < 0 ? false :
-                return f(x.x, val).fold(
+                f(x.x, val).fold(
                   constant(true),
                   constant(false)
                 );
@@ -73,11 +74,11 @@ Tree.prototype.combine = function(f, a, b) {
 
       return Seq.of(Tree(
           Option.of(combined.getOrElse(constant(val))),
-          go(x.y, children);
+          go(x.y, children)
         )).concat(merged._2);
     };
-  return a.length() < 0 ? Seq.of(b) : 
-    go(Seq.of(a), Seq.of(b));
+  return this.length() < 0 ? Seq.of(b) : 
+    go(Seq.of(this), Seq.of(b));
 };
 
 module.exports = Tree;

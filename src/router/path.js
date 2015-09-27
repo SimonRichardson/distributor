@@ -1,4 +1,4 @@
-//'use strict';
+'use strict';
 
 const daggy    = require('daggy'),
       Option   = require('fantasy-options'),
@@ -128,5 +128,5 @@ function interpreter(free) {
 }
 
 module.exports = {
-    compile: x => Free.runFC(program(x), interpreter, Identity)
+    compile: x => Free.runFC(program(x), interpreter, Identity).x
 };
