@@ -19,6 +19,10 @@ Builder.prototype.rmap = function(f) {
     return Builder(this.type, this.routes.map(f));
 };
 
+Builder.prototype.dimap = function(f, g) {
+    return Builder(f(this.type), this.routes.map(g));
+};
+
 module.exports = {
     build: type => Builder.of(type)
 };
