@@ -27,14 +27,23 @@ function extract(x) {
 }
 
 function errors(x) {
-  return x.foldl((acc, x) => {
-    return x.cata({
+  return x.foldl((acc, y) => {
+    return y.cata({
       Right: constant(acc),
-      Left: y => {
-        return acc.snoc(y);
+      Left: z => {
+        return acc.tell(['Invalid: ' + z.x.toString()]).map(constant(x));
       }
     });
-  }, Seq.empty());
+  }, Writer(() => Tuple2(x, ['Path compile errors.'])));
+}
+
+function clean(t) {
+  const go = function(x) {
+    return x.filter(x => {
+      return typeof x !== 'object';
+    }).x;
+  };
+  return Writer(() => Tuple2(t._1, go(Seq(t._2))))
 }
 
 function interpreter(free) {
@@ -53,15 +62,12 @@ function interpreter(free) {
         extracted = extract(all);
 
       if (extracted.length() < all.length()) {
-        return Writer.of(all)
-          .tell("Compile errors.")
-          .chain(x => Writer.of(errors(all)));
+        return clean(errors(all).run());
       } else {
         const y = extracted.foldl((acc, x) => {
           return acc.combine((a, b) => {
-            console.log(a, b);
-              return true;
-          }, x);
+            return a === b ? Option.Some(a) : Option.None;
+          }, Tree.root(x));
         }, Tree.empty());
         // fold into a tree
         return Writer.of({});
@@ -69,6 +75,22 @@ function interpreter(free) {
     }
   });
 }
+
+/*
+
+  [
+    "a/b"
+    "a/b/c"
+    "x/y/z"
+  ]
+
+  [
+    "[a/b]/c"
+    "x/y/z"
+  ]
+
+*/
+
 
 module.exports = {
   run: x => Free.runFC(x, interpreter, Writer)

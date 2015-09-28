@@ -26,6 +26,15 @@ const daggy    = require('daggy'),
         Valid : ['x']
       });
 
+PathNode.prototype.toString = function() {
+  return this.cata({
+    Name    : x => x.fold(a => 'Name(' + a + ')', () => 'Name'),
+    Variable: x => x.fold(a => 'Variable(' + a + ')', () => 'Variable'),
+    Wildcard: () => 'Wildcard',
+    Empty   : () => 'Empty'
+  });
+};
+
 function filter(x) {
   return Free.liftFC(Path.Filter(x));
 }

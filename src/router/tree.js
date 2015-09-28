@@ -8,24 +8,30 @@ const daggy  = require('daggy'),
       constant = C.constant,
       identity = C.identity,
         
-      Tree = daggy.tagged('x', 'y');
+      Tree = daggy.tagged('value', 'nodes');
 
 Tree.of = x => Tree(Option.of(x), Seq.empty());
 
 Tree.empty = () => Tree(Option.None, Seq.empty());
 
+Tree.root = x => Tree(Option.None, Seq.of(x));
+
 Tree.prototype.map = function(f) {
-  return Tree(this.x.fold(f, identity), this.y.map(f));
+  return Tree(this.value.fold(f, identity), this.nodes.map(f));
 };
 
 Tree.prototype.length = function() {
-  return this.y.length();
+  return this.nodes.length();
+};
+
+Tree.prototype.appendNode = function(x) {
+  return Tree(this.value, this.nodes.snoc(x));
 };
 
 Tree.prototype.foldl = function(f, acc) {
-  return this.y.foldl((acc, x) => {
+  return this.nodes.foldl((acc, x) => {
     return x.foldl(f, acc);
-  }, this.x.cata({
+  }, this.value.cata({
     Some: a => f(acc, a),
     None: constant(acc)
   }));
@@ -49,7 +55,7 @@ Tree.prototype.match = function(f) {
 Tree.prototype.combine = function(f, b) {
   const go = function(a, b) {
       return a.chain(x => {
-        return x.length() < 0 ? Seq.of(x) : rec(x);
+        return x.length() < 1 ? Seq.of(x) : rec(x);
       });
     },
     rec = function(x) {
@@ -77,8 +83,9 @@ Tree.prototype.combine = function(f, b) {
           go(x.y, children)
         )).concat(merged._2);
     };
-  return this.length() < 0 ? Seq.of(b) : 
-    go(Seq.of(this), Seq.of(b));
+  return this.length() < 0 ? b : 
+    b.length() < 0 ? this :
+    go(this, b);
 };
 
 module.exports = Tree;
