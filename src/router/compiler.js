@@ -27,23 +27,16 @@ function extract(x) {
 }
 
 function errors(x) {
-  return x.foldl((acc, y) => {
-    return y.cata({
+  return x.zip(Seq.range(0, x.length())).foldl((acc, y) => {
+    return y._1.cata({
       Right: constant(acc),
       Left: z => {
-        return acc.tell(['Invalid: ' + z.x.toString()]).map(constant(x));
+        return acc
+          .tell(Seq.of('Invalid ' + z.x.toString() + ' at index ' + y._2))
+          .map(constant(x));
       }
     });
-  }, Writer(() => Tuple2(x, ['Path compile errors.'])));
-}
-
-function clean(t) {
-  const go = function(x) {
-    return x.filter(x => {
-      return typeof x !== 'object';
-    }).x;
-  };
-  return Writer(() => Tuple2(t._1, go(Seq(t._2))))
+  }, Writer.of(x).tell(Seq.of('Path compile errors.')));
 }
 
 function interpreter(free) {
@@ -62,7 +55,7 @@ function interpreter(free) {
         extracted = extract(all);
 
       if (extracted.length() < all.length()) {
-        return clean(errors(all).run());
+        return errors(all);
       } else {
         const y = extracted.foldl((acc, x) => {
           return acc.combine((a, b) => {
