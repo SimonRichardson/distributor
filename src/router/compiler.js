@@ -7,20 +7,20 @@ const Free   = require('fantasy-frees').Free,
       C      = require('fantasy-combinators'),
       tuples = require('fantasy-tuples'),
 
+      path = require('./path'),
+      Tree = require('./tree'),
+
       constant = C.constant,
       identity = C.identity,
 
       Tuple2 = tuples.Tuple2,
 
-      path = require('./path'),
-      Tree = require('./tree');
+      Path = path.Path;
 
 function extract(x) {
   return x.foldl((acc, x) => {
     return x.cata({
-      Right: y => {
-        return acc.snoc(y);
-      },
+      Right: y => acc.snoc(y),
       Left: constant(acc)
     });
   }, Seq.empty());
@@ -47,7 +47,7 @@ function interpreter(free) {
         .rmap(x => {
           return x.map(x => {
             return x.reverse().foldl((acc, x) => {
-              return Tree(Option.of(x), acc);
+              return Tree(Option.of(x), Seq.of(acc));
             }, Tree.empty());
           });
         }),
@@ -57,33 +57,19 @@ function interpreter(free) {
       if (extracted.length() < all.length()) {
         return errors(all);
       } else {
-        const y = extracted.foldl((acc, x) => {
-          return acc.combine((a, b) => {
-            return a === b ? Option.Some(a) : Option.None;
-          }, Tree.root(x));
-        }, Tree.empty());
+
+        const result = extracted.reducel((acc, x) => {
+          return acc.merge(x);
+        });
+
+        console.log('-Final', result.toString());
+
         // fold into a tree
-        return Writer.of({});
+        return Writer.of(result);
       }
     }
   });
 }
-
-/*
-
-  [
-    "a/b"
-    "a/b/c"
-    "x/y/z"
-  ]
-
-  [
-    "[a/b]/c"
-    "x/y/z"
-  ]
-
-*/
-
 
 module.exports = {
   run: x => Free.runFC(x, interpreter, Writer)

@@ -26,12 +26,59 @@ const daggy    = require('daggy'),
         Valid : ['x']
       });
 
+PathNode.prototype.equals = function(b) {
+  const eq = x => y => {
+    return x.fold(
+      a  => y.fold(b => a === b, constant(false)),
+      () => y.fold(constant(false), constant(true))
+    );
+  };
+  return this.cata({
+    Name    : x => {
+      return b.cata({
+        Root    : constant(false),
+        Name    : eq(x),
+        Variable: constant(false),
+        Wildcard: constant(false),
+        Empty   : constant(false),
+      });
+    },
+    Variable: x => {
+      return b.cata({
+        Root    : constant(false),
+        Name    : constant(false),
+        Variable: eq(x),
+        Wildcard: constant(false),
+        Empty   : constant(false),
+      });
+    },
+    Wildcard: () => {
+      return b.cata({
+        Root    : constant(false),
+        Name    : constant(false),
+        Variable: constant(false),
+        Wildcard: constant(true),
+        Empty   : constant(false),
+      });
+    },
+    Empty   : () => {
+      return b.cata({
+        Root    : constant(false),
+        Name    : constant(false),
+        Variable: constant(false),
+        Wildcard: constant(false),
+        Empty   : constant(true),
+      });
+    }
+  });
+};
+
 PathNode.prototype.toString = function() {
   return this.cata({
     Name    : x => x.fold(a => 'Name(' + a + ')', () => 'Name'),
     Variable: x => x.fold(a => 'Variable(' + a + ')', () => 'Variable'),
-    Wildcard: () => 'Wildcard',
-    Empty   : () => 'Empty'
+    Wildcard: constant('Wildcard'),
+    Empty   : constant('Empty')
   });
 };
 
@@ -89,6 +136,7 @@ function type(x) {
 
 function normalise(x) {
   return x.cata({
+    Root: constant(x),
     Name: y => {
       return PathNode.Name(y.map(z => z.toLowerCase()));
     },
@@ -137,5 +185,7 @@ function interpreter(free) {
 }
 
 module.exports = {
-    compile: x => Free.runFC(program(x), interpreter, Identity).x
+  Path: PathNode,
+
+  compile: x => Free.runFC(program(x), interpreter, Identity).x
 };

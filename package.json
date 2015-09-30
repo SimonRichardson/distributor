@@ -24,7 +24,8 @@
     "fantasy-readers": "git+https://github.com/fantasyland/fantasy-readers.git",
     "fantasy-frees": "^0.x.x",
     "fantasy-io": "git+https://github.com/fantasyland/fantasy-io.git",
-    "fantasy-arrays": "git+https://github.com/SimonRichardson/fantasy-arrays"
+    "fantasy-arrays": "git+https://github.com/SimonRichardson/fantasy-arrays.git",
+    "fantasy-these": "git+https://github.com/fantasyland/fantasy-these.git"
   },
   "devDependencies": {
     "grunt-cli": "0.1.9",

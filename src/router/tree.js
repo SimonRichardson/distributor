@@ -2,11 +2,16 @@
 
 const daggy  = require('daggy'),
       Option = require('fantasy-options'),
+      These  = require('fantasy-these'),
       Seq    = require('fantasy-arrays').Seq,
       C      = require('fantasy-combinators'),
+      tuples = require('fantasy-tuples'),
 
+      compose  = C.compose,
       constant = C.constant,
       identity = C.identity,
+
+      Tuple2 = tuples.Tuple2,
         
       Tree = daggy.tagged('value', 'nodes');
 
@@ -14,7 +19,9 @@ Tree.of = x => Tree(Option.of(x), Seq.empty());
 
 Tree.empty = () => Tree(Option.None, Seq.empty());
 
-Tree.root = x => Tree(Option.None, Seq.of(x));
+Tree.root = (x, y) => Tree(Option.Some(x), Seq.of(y));
+
+Tree.fork = (x, y) => Tree(Option.None, Seq([x, y]));
 
 Tree.prototype.map = function(f) {
   return Tree(this.value.fold(f, identity), this.nodes.map(f));
@@ -24,8 +31,22 @@ Tree.prototype.length = function() {
   return this.nodes.length();
 };
 
+Tree.prototype.depth = function() {
+  return this.nodes.foldl((acc, x) => {
+    return acc + x.depth();
+  }, 1);
+};
+
+Tree.prototype.modifyValue = function(x) {
+  return Tree(x, this.nodes);
+};
+
 Tree.prototype.appendNode = function(x) {
-  return Tree(this.value, this.nodes.snoc(x));
+  return Tree(this.value, this.nodes.cons(x));
+};
+
+Tree.prototype.appendNodes = function(x) {
+  return Tree(this.value, this.nodes.concat(x));
 };
 
 Tree.prototype.foldl = function(f, acc) {
@@ -52,40 +73,86 @@ Tree.prototype.match = function(f) {
   return go(Seq.empty(), this, 0);
 };
 
+Option.prototype.toString = function() {
+  return this.cata({
+    Some: x => 'Some(' + x + ')',
+    None: constant('None')
+  });
+};
+
+Seq.prototype.toString = function() {
+  return 'Seq(' + this.foldl((acc, x) => {
+    return acc.concat([x.toString()]);
+  }, []).join(', ') + ')';
+};
+
+Tree.prototype.toString = function() {
+  return 'Tree(' + this.value.toString() + ', ' + this.nodes.toString() + ')';
+};
+
+Tuple2.prototype.toString = function() {
+  return 'Tuple2(' + this._1.toString() + ', ' + this._2.toString() + ')';
+};
+
+Tree.prototype.merge = function(b) {
+  return this.combine((a, b) => a.equals(b), b);
+};
+
 Tree.prototype.combine = function(f, b) {
-  const go = function(a, b) {
+  const match = (a, b) => {
+      return a.map(x => b.chain(y => {
+        return f(x, y) ? Option.Some(x) : Option.None;
+      }));
+    },
+    truthy = x => x.fold(constant(true), constant(false)),
+    go = function(a, b) {
       return a.chain(x => {
-        return x.length() < 1 ? Seq.of(x) : rec(x);
+        return x.value.fold(
+          _ => {
+            const val = x.value,
+                  nodes = x.nodes,
+                  combined = b.foldl((acc, a) => {
+                    return a.value.fold(
+                      _ => {
+                        return match(val, a.value).fold(
+                          x => Option.of(x),
+                          constant(acc)
+                        );
+                      },
+                      constant(acc)
+                    );
+                  }, Option.None),
+                  tuple = b.partition(x => {
+                    return x.value.fold(
+                      _ => truthy(match(val, x.value)),
+                      constant(false)
+                    );
+                  }),
+                  children = tuple._1.foldl((acc, a) => {
+                    return acc.concat(a.nodes);
+                  }, Seq.empty()),
+                  unique = children.filter(x => {
+                    return !truthy(nodes.foldl((acc, y) => {
+                      return acc.fold(constant(acc), () => match(x.value, y.value));
+                    }, Option.None));
+                  });
+
+            return Seq.of(Tree(
+                Option.of(combined.getOrElse(val)),
+                go(nodes, unique)
+              )).concat(tuple._2);
+          },
+          () => Seq.of(x)
+        );
       });
     },
-    rec = function(x) {
-      const val = x.x,
-            combined = b.foldl((acc, y) => {
-              return y.length() < 0 ? acc :
-                f(y.x, val).cata({
-                  Some: x => Option.of(x),
-                  None: constant(acc)
-                });
-            }, Option.None),
-            merged = b.Partition(x => {
-              return x.length() < 0 ? false :
-                f(x.x, val).fold(
-                  constant(true),
-                  constant(false)
-                );
-            }),
-            children = merged._1.foldl((acc, y) => {
-              return acc.concat(y.y);
-            });
+    a = this,
+    nodes = a.value.fold(
+      x => go(Seq.of(a), Seq.of(b)),
+      constant(Seq.of(b))
+    );
 
-      return Seq.of(Tree(
-          Option.of(combined.getOrElse(constant(val))),
-          go(x.y, children)
-        )).concat(merged._2);
-    };
-  return this.length() < 0 ? b : 
-    b.length() < 0 ? this :
-    go(this, b);
+  return Tree(Option.None, nodes);
 };
 
 module.exports = Tree;

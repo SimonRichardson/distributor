@@ -19,9 +19,8 @@ function createRoutes(routes) {
 
 function main() {
     const routes = router.get()
-              .route('/events')
-              .route('/events/:id')
-              .route('/events/:id/tickets'),
+              .route('/1/2/3')
+              .route('/1/2'),
           paths = router.compile(createRoutes(routes)),
           handle = (req, res) => {
             // TODO : match url against the compiled routes
