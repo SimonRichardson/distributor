@@ -40,18 +40,6 @@ Tree.prototype.depth = function() {
   }, 1);
 };
 
-Tree.prototype.modifyValue = function(x) {
-  return Tree(x, this.nodes);
-};
-
-Tree.prototype.appendNode = function(x) {
-  return Tree(this.value, this.nodes.cons(x));
-};
-
-Tree.prototype.appendNodes = function(x) {
-  return Tree(this.value, this.nodes.concat(x));
-};
-
 Tree.prototype.foldl = function(f, acc) {
   return this.nodes.foldl((acc, x) => {
     return x.foldl(f, acc);
@@ -103,7 +91,7 @@ Tree.prototype.merge = function(b) {
 
 Tree.prototype.combine = function(f, b) {
   const match = (a, b) => {
-      return a.map(x => b.chain(y => {
+      return a.chain(x => b.chain(y => {
         return f(x, y) ? Option.Some(x) : Option.None;
       }));
     },
@@ -141,27 +129,20 @@ Tree.prototype.combine = function(f, b) {
       if(a.length() < 1) return b;
       else if(b.length() < 1) return a;
 
+      // Find everything in b, that doesn't match a?
       const sequence = similar(a, b).foldl((acc, x) => {
         return Tuple2(concat(acc._1, x._1), concat(acc._2, x._2));
       }, Tuple2(Seq.empty(), Seq.empty()));
 
       // Merge the a and b streams together
-      const x = merge(sequence._1)(Seq.empty()),
-            y = merge(a)(x);
-
-      const merged = y;
-
-      console.log("Merged", x.toString(), y.toString());
+      const x      = merge(sequence._1)(Seq.empty()),
+            merged = merge(a)(x);
 
       const recursive = merged.foldl((acc, x) => {
         return acc.snoc(Tree(x.value, x.nodes.foldl((a, b) => {
           return go(a, Seq.of(b));
         }, Seq.empty())));
-
       }, Seq.empty());
-
-
-      console.log("Recursive", recursive.toString(), sequence._2.toString());
 
       return recursive.concat(sequence._2);
     };
