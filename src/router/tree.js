@@ -3,13 +3,16 @@
 const daggy  = require('daggy'),
       Option = require('fantasy-options'),
       These  = require('fantasy-these'),
-      Seq    = require('fantasy-arrays').Seq,
       C      = require('fantasy-combinators'),
+      arrays = require('fantasy-arrays'),
       tuples = require('fantasy-tuples'),
 
       compose  = C.compose,
       constant = C.constant,
       identity = C.identity,
+
+      Seq    = arrays.Seq,
+      unsafe = arrays.unsafe.seq,
 
       Tuple2 = tuples.Tuple2,
         
@@ -105,54 +108,65 @@ Tree.prototype.combine = function(f, b) {
       }));
     },
     truthy = x => x.fold(constant(true), constant(false)),
-    go = function(a, b) {
-      return a.chain(x => {
-        return x.value.fold(
-          _ => {
-            const val = x.value,
-                  nodes = x.nodes,
-                  combined = b.foldl((acc, a) => {
-                    return a.value.fold(
-                      _ => {
-                        return match(val, a.value).fold(
-                          x => Option.of(x),
-                          constant(acc)
-                        );
-                      },
-                      constant(acc)
-                    );
-                  }, Option.None),
-                  tuple = b.partition(x => {
-                    return x.value.fold(
-                      _ => truthy(match(val, x.value)),
-                      constant(false)
-                    );
-                  }),
-                  children = tuple._1.foldl((acc, a) => {
-                    return acc.concat(a.nodes);
-                  }, Seq.empty()),
-                  unique = children.filter(x => {
-                    return !truthy(nodes.foldl((acc, y) => {
-                      return acc.fold(constant(acc), () => match(x.value, y.value));
-                    }, Option.None));
-                  });
-
-            return Seq.of(Tree(
-                Option.of(combined.getOrElse(val)),
-                go(nodes, unique)
-              )).concat(tuple._2);
-          },
-          () => Seq.of(x)
-        );
-      });
+    similar = (a, b) => {
+      return a.foldl((acc, x) => {
+        return acc.snoc(b.partition(y => {
+          return truthy(match(x.value, y.value));
+        }));
+      }, Seq.empty());
     },
-    a = this,
-    nodes = a.value.fold(
-      x => go(Seq.of(a), Seq.of(b)),
-      constant(Seq.of(b))
-    );
+    merge = a => b => {
+      return a.foldl((acc, x) => {
+        const index = acc.findIndex(y => match(x.value, y.value));
+        return index.cata({
+          Some: y => {
+            // It's not actually unsafe, because we check the item exists at the index.
+            const value = unsafe.unsafeIndex(acc, y),
+                  r = acc.updateAt(y, Tree(x.value, x.nodes.concat(value.nodes)));
+            return r.fold(identity, constant(acc));
+          },
+          None: () => x.value.fold(_ => acc.snoc(x), constant(acc))
+        });
+      }, b);
+    },
+    concat = (a, b) => {
+      const nonEmpty = a => {
+        return a.foldl((acc, x) => {
+          return acc.fold(constant(acc), () => x.value.map(_ => a));
+        }, Option.None);
+      };
+      return nonEmpty(b).fold(x => a.concat(x), constant(a));
+    },
+    go = function(a, b) {
+      if(a.length() < 1) return b;
+      else if(b.length() < 1) return a;
 
-  return Tree(Option.None, nodes);
+      const sequence = similar(a, b).foldl((acc, x) => {
+        return Tuple2(concat(acc._1, x._1), concat(acc._2, x._2));
+      }, Tuple2(Seq.empty(), Seq.empty()));
+
+      // Merge the a and b streams together
+      const x = merge(sequence._1)(Seq.empty()),
+            y = merge(a)(x);
+
+      const merged = y;
+
+      console.log("Merged", x.toString(), y.toString());
+
+      const recursive = merged.foldl((acc, x) => {
+        return acc.snoc(Tree(x.value, x.nodes.foldl((a, b) => {
+          return go(a, Seq.of(b));
+        }, Seq.empty())));
+
+      }, Seq.empty());
+
+
+      console.log("Recursive", recursive.toString(), sequence._2.toString());
+
+      return recursive.concat(sequence._2);
+    };
+
+  return Tree(Option.None, go(Seq.of(this), Seq.of(b)));
 };
 
 module.exports = Tree;

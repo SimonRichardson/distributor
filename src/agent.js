@@ -20,7 +20,7 @@ function createRoutes(routes) {
 function main() {
     const routes = router.get()
               .route('/1/2/3')
-              .route('/1/2'),
+              .route('/1/2/a'),
           paths = router.compile(createRoutes(routes)),
           handle = (req, res) => {
             // TODO : match url against the compiled routes
