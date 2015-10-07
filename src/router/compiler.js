@@ -47,7 +47,11 @@ function interpreter(free) {
         .rmap(x => {
           return x.map(x => {
             return x.reverse().foldl((acc, x) => {
-              return Tree(Option.of(x), Seq.of(acc));
+              const nodes = acc.nonEmpty().fold(
+                _ => Seq.of(acc),
+                () => Seq.empty()
+              );
+              return Tree(Option.of(x), nodes);
             }, Tree.empty());
           });
         }),

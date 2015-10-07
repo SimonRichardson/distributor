@@ -85,6 +85,10 @@ Tuple2.prototype.toString = function() {
   return 'Tuple2(' + this._1.toString() + ', ' + this._2.toString() + ')';
 };
 
+Tree.prototype.nonEmpty = function() {
+  return this.value.map(constant(this));
+};
+
 Tree.prototype.merge = function(b) {
   return this.combine((a, b) => a.equals(b), b);
 };
