@@ -62,7 +62,12 @@ function interpreter(free) {
         return errors(all);
       } else {
 
-        const result = extracted.reducel((acc, x) => {
+        // Make sure every one has root node.
+        const root = extracted.foldl((acc, x) => {
+          return acc.snoc(Tree(Option.None, Seq.of(x)));
+        }, Seq.empty());
+
+        const result = root.reducel((acc, x) => {
           return acc.merge(x);
         });
 

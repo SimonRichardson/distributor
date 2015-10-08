@@ -100,7 +100,7 @@ Tree.prototype.combine = function(f, b) {
       }));
     },
     truthy = x => x.fold(constant(true), constant(false)),
-    similar = (a, b) => {
+    difference = (a, b) => {
       return a.foldl((acc, x) => {
         return acc.snoc(b.partition(y => {
           return truthy(match(x.value, y.value));
@@ -129,12 +129,15 @@ Tree.prototype.combine = function(f, b) {
       };
       return nonEmpty(b).fold(x => a.concat(x), constant(a));
     },
+    root = x => {
+      return x.value.fold(_ => Seq(x), () => x.nodes);
+    },
     go = function(a, b) {
       if(a.length() < 1) return b;
       else if(b.length() < 1) return a;
 
       // Find everything in b, that doesn't match a?
-      const sequence = similar(a, b).foldl((acc, x) => {
+      const sequence = difference(a, b).foldl((acc, x) => {
         return Tuple2(concat(acc._1, x._1), concat(acc._2, x._2));
       }, Tuple2(Seq.empty(), Seq.empty()));
 
@@ -151,7 +154,7 @@ Tree.prototype.combine = function(f, b) {
       return recursive.concat(sequence._2);
     };
 
-  return Tree(Option.None, go(Seq.of(this), Seq.of(b)));
+  return Tree(Option.None, go(root(this), root(b)));
 };
 
 module.exports = Tree;
