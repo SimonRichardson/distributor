@@ -11,6 +11,11 @@ const daggy    = require('daggy'),
       constant = C.constant,
       identity = C.identity,
 
+      UrlNode = daggy.taggedSum({
+        Name    : ['x'],
+        Empty   : []
+      }),
+
       PathNode = daggy.taggedSum({
         Name    : ['x'],
         Variable: ['x'],
@@ -25,6 +30,43 @@ const daggy    = require('daggy'),
         Format: ['x'],
         Valid : ['x']
       });
+
+UrlNode.type = function(x) {
+  return head(x).map(y => {
+    return UrlNode.Name(nil(x));
+  }).getOrElse(UrlNode.Empty);
+};
+
+UrlNode.prototype.equals = function(b) {
+  const eq = x => y => {
+    return x.fold(
+      a  => y.fold(b => a === b, constant(false)),
+      () => y.fold(constant(false), constant(true))
+    );
+  };
+  return this.cata({
+    Name    : x => {
+      return b.cata({
+        Name    : eq(x),
+        Empty   : constant(false),
+      });
+    },
+    Empty   : () => {
+      return b.cata({
+        Name    : constant(false),
+        Empty   : constant(true),
+      });
+    }
+  });
+};
+
+PathNode.type = function(x) {
+  return head(x).map(y => {
+    return y === ':' ? PathNode.Variable(tail(x)) : 
+           y === '*' ? PathNode.Wildcard :
+           PathNode.Name(nil(x));
+  }).getOrElse(PathNode.Empty);
+};
 
 PathNode.prototype.equals = function(b) {
   const eq = x => y => {
@@ -66,15 +108,6 @@ PathNode.prototype.equals = function(b) {
         Empty   : constant(true),
       });
     }
-  });
-};
-
-PathNode.prototype.toString = function() {
-  return this.cata({
-    Name    : x => x.fold(a => 'Name(' + a + ')', () => 'Name'),
-    Variable: x => x.fold(a => 'Variable(' + a + ')', () => 'Variable'),
-    Wildcard: constant('Wildcard'),
-    Empty   : constant('Empty')
   });
 };
 
@@ -122,23 +155,17 @@ function nil(x) {
   return x.length > 0 ? Option.Some(x) : Option.None;
 }
 
-function type(x) {
-  return head(x).map(y => {
-    return y === ':' ? PathNode.Variable(tail(x)) : 
-           y === '*' ? PathNode.Wildcard :
-           PathNode.Name(nil(x));
-  }).getOrElse(PathNode.Empty);
-}
-
-function normalise(x) {
-  return x.cata({
-    Name: y => {
-      return PathNode.Name(y.map(z => z.toLowerCase()));
-    },
-    Variable: constant(x),
-    Wildcard: constant(x),
-    Empty: constant(x)
-  });
+function normalise(f) {
+  return x => {
+    return x.cata({
+      Name: y => {
+        return PathNode.Name(y.map(f));
+      },
+      Variable: constant(x),
+      Wildcard: constant(x),
+      Empty: constant(x)
+    });
+  };
 }
 
 function empty() {
@@ -150,7 +177,7 @@ function empty() {
   };
 }
 
-function interpreter(free) {
+function pathInterpreter(free) {
   const result = free.cata({
     Filter: x => {
       return x.filter(x => x !== '')
@@ -159,10 +186,10 @@ function interpreter(free) {
       return Seq(x.split('/'));
     },
     Token: x => {
-      return x.map(type);
+      return x.map(PathNode.type);
     },
     Format: x => {
-      return x.map(normalise);
+      return x.map(normalise(x => x.toLowerCase()));
     },
     Valid: x => {
       const v = x.filter(x => {
@@ -179,8 +206,42 @@ function interpreter(free) {
   return Identity.of(result);
 }
 
+function uriInterpreter(free) {
+  const result = free.cata({
+    Filter: x => {
+      return x.filter(x => x !== '')
+    },
+    Split: x => {
+      return Seq(x.split('/'));
+    },
+    Token: x => {
+      return x.map(UrlNode.type);
+    },
+    Format: x => {
+      return x.map(normalise(x => decodeURI(x.toLowerCase())));
+    },
+    Valid: x => {
+      const v = x.filter(x => {
+        return x.cata({
+          Name    : empty(),
+          Empty   : constant(true)
+        });
+      }, Seq);
+      return v.length() < 1 ? Either.Right(x) : Either.Left(v);
+    }
+  });
+  return Identity.of(result);
+}
+
+
 module.exports = {
   Path: PathNode,
+  Url : UrlNode,
 
-  compile: x => Free.runFC(program(x), interpreter, Identity).x
+  path: {
+    compile: x => Free.runFC(program(x), pathInterpreter, Identity).x
+  },
+  url: {
+    compile: x => Free.runFC(program(x), uriInterpreter, Identity).x
+  }
 };

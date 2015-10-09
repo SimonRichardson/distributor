@@ -8,7 +8,6 @@ const Free   = require('fantasy-frees').Free,
       tuples = require('fantasy-tuples'),
 
       path    = require('./path'),
-      url     = require('./url'),
       Tree    = require('./tree'),
       Request = require('./request'),
 
@@ -45,7 +44,7 @@ function interpreter(free) {
   return free.cata({
     ParseRoutes: routes => {
       const trees = routes
-        .rmap(path.compile)
+        .rmap(path.path.compile)
         .rmap(x => {
           return x.map(y => Tree.fromSeq(y));
         });
@@ -75,7 +74,7 @@ function interpreter(free) {
       return Writer.of(Request(method, url));
     },
     ParseUrl: uri => {
-      const to = url.compile(uri).map(x => Tree.fromSeq(x));
+      const to = path.url.compile(uri).map(x => Tree.fromSeq(x));
       return Writer.of(to);
     },
     Match: (routes, request) => {
