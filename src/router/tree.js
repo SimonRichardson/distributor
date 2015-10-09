@@ -26,6 +26,16 @@ Tree.root = (x, y) => Tree(Option.Some(x), Seq.of(y));
 
 Tree.fork = (x, y) => Tree(Option.None, Seq([x, y]));
 
+Tree.fromSeq = x => {
+  return x.reverse().foldl((acc, x) => {
+    const nodes = acc.nonEmpty().fold(
+      _ => Seq.of(acc),
+      () => Seq.empty()
+    );
+    return Tree(Option.of(x), nodes);
+  }, Tree.empty());
+};
+
 Tree.prototype.map = function(f) {
   return Tree(this.value.fold(f, identity), this.nodes.map(f));
 };
@@ -62,27 +72,6 @@ Tree.prototype.match = function(f) {
       });
   };
   return go(Seq.empty(), this, 0);
-};
-
-Option.prototype.toString = function() {
-  return this.cata({
-    Some: x => 'Some(' + x + ')',
-    None: constant('None')
-  });
-};
-
-Seq.prototype.toString = function() {
-  return 'Seq(' + this.foldl((acc, x) => {
-    return acc.concat([x.toString()]);
-  }, []).join(', ') + ')';
-};
-
-Tree.prototype.toString = function() {
-  return 'Tree(' + this.value.toString() + ', ' + this.nodes.toString() + ')';
-};
-
-Tuple2.prototype.toString = function() {
-  return 'Tuple2(' + this._1.toString() + ', ' + this._2.toString() + ')';
 };
 
 Tree.prototype.nonEmpty = function() {
@@ -129,32 +118,30 @@ Tree.prototype.combine = function(f, b) {
       };
       return nonEmpty(b).fold(x => a.concat(x), constant(a));
     },
-    root = x => {
+    trim = x => {
       return x.value.fold(_ => Seq(x), () => x.nodes);
     },
     go = function(a, b) {
       if(a.length() < 1) return b;
       else if(b.length() < 1) return a;
+      else {
+        const sequence = difference(a, b).foldl((acc, x) => {
+            return Tuple2(concat(acc._1, x._1), concat(acc._2, x._2));
+          }, Tuple2(Seq.empty(), Seq.empty())),
 
-      // Find everything in b, that doesn't match a?
-      const sequence = difference(a, b).foldl((acc, x) => {
-        return Tuple2(concat(acc._1, x._1), concat(acc._2, x._2));
-      }, Tuple2(Seq.empty(), Seq.empty()));
+          merged = compose(merge(a))(merge(sequence._1))(Seq.empty()),
 
-      // Merge the a and b streams together
-      const x      = merge(sequence._1)(Seq.empty()),
-            merged = merge(a)(x);
+          recursive = merged.foldl((acc, x) => {
+            return acc.snoc(Tree(x.value, x.nodes.foldl((a, b) => {
+              return go(a, Seq.of(b));
+            }, Seq.empty())));
+          }, Seq.empty());
 
-      const recursive = merged.foldl((acc, x) => {
-        return acc.snoc(Tree(x.value, x.nodes.foldl((a, b) => {
-          return go(a, Seq.of(b));
-        }, Seq.empty())));
-      }, Seq.empty());
-
-      return recursive.concat(sequence._2);
+        return recursive.concat(sequence._2);
+      }
     };
 
-  return Tree(Option.None, go(root(this), root(b)));
+  return Tree(Option.None, go(trim(this), trim(b)));
 };
 
 module.exports = Tree;

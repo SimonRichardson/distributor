@@ -11,14 +11,12 @@ const daggy    = require('daggy'),
       constant = C.constant,
       identity = C.identity,
 
-      PathNode = daggy.taggedSum({
+      UrlNode = daggy.taggedSum({
         Name    : ['x'],
-        Variable: ['x'],
-        Wildcard: [],
         Empty   : []
       }),
 
-      Path = daggy.taggedSum({
+      Url = daggy.taggedSum({
         Filter: ['x'],
         Split : ['x'],
         Token : ['x'],
@@ -26,7 +24,7 @@ const daggy    = require('daggy'),
         Valid : ['x']
       });
 
-PathNode.prototype.equals = function(b) {
+UrlNode.prototype.equals = function(b) {
   const eq = x => y => {
     return x.fold(
       a  => y.fold(b => a === b, constant(false)),
@@ -37,65 +35,43 @@ PathNode.prototype.equals = function(b) {
     Name    : x => {
       return b.cata({
         Name    : eq(x),
-        Variable: constant(false),
-        Wildcard: constant(false),
-        Empty   : constant(false),
-      });
-    },
-    Variable: x => {
-      return b.cata({
-        Name    : constant(false),
-        Variable: eq(x),
-        Wildcard: constant(false),
-        Empty   : constant(false),
-      });
-    },
-    Wildcard: () => {
-      return b.cata({
-        Name    : constant(false),
-        Variable: constant(false),
-        Wildcard: constant(true),
         Empty   : constant(false),
       });
     },
     Empty   : () => {
       return b.cata({
         Name    : constant(false),
-        Variable: constant(false),
-        Wildcard: constant(false),
         Empty   : constant(true),
       });
     }
   });
 };
 
-PathNode.prototype.toString = function() {
+UrlNode.prototype.toString = function() {
   return this.cata({
     Name    : x => x.fold(a => 'Name(' + a + ')', () => 'Name'),
-    Variable: x => x.fold(a => 'Variable(' + a + ')', () => 'Variable'),
-    Wildcard: constant('Wildcard'),
     Empty   : constant('Empty')
   });
 };
 
 function filter(x) {
-  return Free.liftFC(Path.Filter(x));
+  return Free.liftFC(Url.Filter(x));
 }
 
 function split(x) {
-  return Free.liftFC(Path.Split(x));
+  return Free.liftFC(Url.Split(x));
 }
 
 function token(x) {
-  return Free.liftFC(Path.Token(x));
+  return Free.liftFC(Url.Token(x));
 }
 
 function format(x) {
-  return Free.liftFC(Path.Format(x));
+  return Free.liftFC(Url.Format(x));
 }
 
 function valid(x) {
-  return Free.liftFC(Path.Valid(x));
+  return Free.liftFC(Url.Valid(x));
 }
 
 function program(x) {
@@ -124,19 +100,15 @@ function nil(x) {
 
 function type(x) {
   return head(x).map(y => {
-    return y === ':' ? PathNode.Variable(tail(x)) : 
-           y === '*' ? PathNode.Wildcard :
-           PathNode.Name(nil(x));
-  }).getOrElse(PathNode.Empty);
+    return UrlNode.Name(nil(x));
+  }).getOrElse(UrlNode.Empty);
 }
 
 function normalise(x) {
   return x.cata({
     Name: y => {
-      return PathNode.Name(y.map(z => z.toLowerCase()));
+      return UrlNode.Name(y.map(z => decodeURI(z.toLowerCase())));
     },
-    Variable: constant(x),
-    Wildcard: constant(x),
     Empty: constant(x)
   });
 }
@@ -168,8 +140,6 @@ function interpreter(free) {
       const v = x.filter(x => {
         return x.cata({
           Name    : empty(),
-          Variable: empty(),
-          Wildcard: constant(false),
           Empty   : constant(true)
         });
       }, Seq);
@@ -180,7 +150,7 @@ function interpreter(free) {
 }
 
 module.exports = {
-  Path: PathNode,
+  Url: UrlNode,
 
   compile: x => Free.runFC(program(x), interpreter, Identity).x
 };

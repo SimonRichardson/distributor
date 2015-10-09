@@ -7,8 +7,10 @@ const Free   = require('fantasy-frees').Free,
       C      = require('fantasy-combinators'),
       tuples = require('fantasy-tuples'),
 
-      path = require('./path'),
-      Tree = require('./tree'),
+      path    = require('./path'),
+      url     = require('./url'),
+      Tree    = require('./tree'),
+      Request = require('./request'),
 
       constant = C.constant,
       identity = C.identity,
@@ -41,45 +43,49 @@ function errors(x) {
 
 function interpreter(free) {
   return free.cata({
-    Compile: routes => {
+    ParseRoutes: routes => {
       const trees = routes
         .rmap(path.compile)
         .rmap(x => {
-          return x.map(x => {
-            return x.reverse().foldl((acc, x) => {
-              const nodes = acc.nonEmpty().fold(
-                _ => Seq.of(acc),
-                () => Seq.empty()
-              );
-              return Tree(Option.of(x), nodes);
-            }, Tree.empty());
-          });
-        }),
-        all = trees.routes,
+          return x.map(y => Tree.fromSeq(y));
+        });
+
+      return Writer.of(trees);
+    },
+    Compile: trees => {
+      const all = trees.routes,
         extracted = extract(all);
 
       if (extracted.length() < all.length()) {
         return errors(all);
       } else {
-
-        // Make sure every one has root node.
         const root = extracted.foldl((acc, x) => {
-          return acc.snoc(Tree(Option.None, Seq.of(x)));
-        }, Seq.empty());
-
-        const result = root.reducel((acc, x) => {
-          return acc.merge(x);
-        });
-
-        console.log('-Final', result.toString());
+            return acc.snoc(Tree(Option.None, Seq.of(x)));
+          }, Seq.empty());
 
         // fold into a tree
-        return Writer.of(result);
+        return Writer.of(root.reducel((acc, x) => acc.merge(x)));
       }
+    },
+    ParseRequest: request => {
+      // This is so unsafe!
+      const url = request.url,
+            method = request.method;
+
+      return Writer.of(Request(method, url));
+    },
+    ParseUrl: uri => {
+      const to = url.compile(uri).map(x => Tree.fromSeq(x));
+      return Writer.of(to);
+    },
+    Match: (routes, request) => {
+      console.log(routes, request);
+      return Writer.of(null);
     }
   });
 }
 
+// Move this to Either<Tree, Seq<String>>
 module.exports = {
   run: x => Free.runFC(x, interpreter, Writer)
 };

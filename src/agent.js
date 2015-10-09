@@ -14,8 +14,19 @@ function createServer(handle, port, done) {
 
 function createRoutes(routes) {
   const dsl = router.dsl;
-  return dsl.compile(routes);
-} 
+  return dsl.parseRoutes(routes).chain(x => {
+    return dsl.compile(x);
+  });
+}
+
+function matchRoute(routes, request) {
+  const dsl = router.dsl;
+  return dsl.parseRequest(request).chain(x => {
+    return dsl.parseUrl(x.url).chain(y => {
+      return dsl.match(routes, y);
+    });
+  });
+}
 
 function main() {
     const routes = router.get()
@@ -24,15 +35,21 @@ function main() {
               .route('/a/b/c'),
           paths = router.compile(createRoutes(routes)),
           handle = (req, res) => {
-            // TODO : match url against the compiled routes
+            router.compile(matchRoute(paths, req)).run();
           },
           start = (port) => {
             console.log("Listening on port:", port);
+
+            // DEBUG
+            setTimeout(() => {
+              var http = require('http');
+              http.get('http://127.0.0.1:8080/a/b/c', () => {});
+            }, 10);
           },
           program = createServer(handle, 8080, Option.Some(start));
 
-    console.log(paths.run());
-
+    // This should return an either!
+    paths.run();
     server.run(program).unsafePerform();
 }
 
