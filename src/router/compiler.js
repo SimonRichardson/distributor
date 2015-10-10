@@ -7,16 +7,16 @@ const Free   = require('fantasy-frees').Free,
       C      = require('fantasy-combinators'),
       tuples = require('fantasy-tuples'),
 
-      path    = require('./path'),
+      path    = require('./../path/path'),
+      url     = require('./../path/url'),
+
       Tree    = require('./tree'),
       Request = require('./request'),
 
       constant = C.constant,
       identity = C.identity,
 
-      Tuple2 = tuples.Tuple2,
-
-      Path = path.Path;
+      Tuple2 = tuples.Tuple2;
 
 function extract(x) {
   return x.foldl((acc, x) => {
@@ -44,7 +44,7 @@ function interpreter(free) {
   return free.cata({
     ParseRoutes: routes => {
       const trees = routes
-        .rmap(path.path.compile)
+        .rmap(path.compile)
         .rmap(x => {
           return x.map(y => Tree.fromSeq(y));
         });
@@ -68,13 +68,13 @@ function interpreter(free) {
     },
     ParseRequest: request => {
       // This is so unsafe!
-      const url = request.url,
+      const uri = request.url,
             method = request.method;
 
-      return Writer.of(Request(method, url));
+      return Writer.of(Request(method, uri));
     },
     ParseUrl: uri => {
-      const to = path.url.compile(uri).map(x => Tree.fromSeq(x));
+      const to = url.compile(uri).map(x => Tree.fromSeq(x));
       return Writer.of(to);
     },
     Match: (routes, request) => {
@@ -84,7 +84,6 @@ function interpreter(free) {
   });
 }
 
-// Move this to Either<Tree, Seq<String>>
 module.exports = {
   run: x => Free.runFC(x, interpreter, Writer)
 };

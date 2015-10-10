@@ -44,7 +44,7 @@ function main() {
             setTimeout(() => {
               var http = require('http');
               http.get('http://127.0.0.1:8080/a/b/c', () => {});
-            }, 10);
+            }, 100);
           },
           program = createServer(handle, 8080, Option.Some(start));
 
