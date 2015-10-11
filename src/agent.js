@@ -1,6 +1,7 @@
 const router = require('./router/router'),
       server = require('./server/server'),
       
+      IO     = require('fantasy-io'),
       Option = require('fantasy-options');
 
 function createServer(handle, port, done) {
@@ -22,7 +23,7 @@ function createRoutes(routes) {
 function matchRoute(routes, request) {
   const dsl = router.dsl;
   return dsl.parseRequest(request).chain(x => {
-    return dsl.parseUrl(x.url).chain(y => {
+    return dsl.parseUrl(x).chain(y => {
       return dsl.match(routes, y);
     });
   });
@@ -35,7 +36,7 @@ function main() {
               .route('/a/b/c'),
           paths = router.compile(createRoutes(routes)),
           handle = (req, res) => {
-            router.compile(matchRoute(paths, req)).run();
+            router.compile(matchRoute(paths, req));
           },
           start = (port) => {
             console.log("Listening on port:", port);
@@ -46,11 +47,13 @@ function main() {
               http.get('http://127.0.0.1:8080/a/b/c', () => {});
             }, 100);
           },
-          program = createServer(handle, 8080, Option.Some(start));
+          program = createServer(handle, 8080, Option.Some(start)),
+          io      = paths.fold(
+            x => IO(() => console.log(x.reverse().toArray().join("\n"))),
+            y => server.run(program)
+          );
 
-    // This should return an either!
-    paths.run();
-    server.run(program).unsafePerform();
+    io.unsafePerform()
 }
 
 main();

@@ -62,13 +62,24 @@ Path.prototype.equals = function(b) {
   });
 };
 
+Path.prototype.toString = function() {
+  return this.cata({
+    Name    : x => x.fold(a => 'Name(' + a + ')', () => 'Name'),
+    Variable: x => x.fold(a => 'Variable(' + a + ')', () => 'Variable'),
+    Wildcard: constant('Wildcard'),
+    Empty   : constant('Empty')
+  });
+};
+
 function normalise() {
   return x => {
     return x.cata({
       Name: y => Path.Name(y.map(z => {
         return z.toLowerCase();
       })),
-      Empty: constant(x)
+      Variable: constant(x),
+      Wildcard: constant(x),
+      Empty   : constant(x)
     });
   };
 }

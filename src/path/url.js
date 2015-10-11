@@ -40,6 +40,13 @@ Url.prototype.equals = function(b) {
   });
 };
 
+Url.prototype.toString = function() {
+  return this.cata({
+    Name    : x => x.fold(a => 'Name(' + a + ')', () => 'Name'),
+    Empty   : constant('Empty')
+  });
+};
+
 function normalise() {
   return x => {
     return x.cata({
