@@ -64,7 +64,10 @@ function interpreter(free) {
           }, Seq.empty());
 
         // fold into a tree
-        return Either.of(root.reducel((acc, x) => acc.merge(x)));
+        return root.reducel((acc, x) => acc.merge(x)).fold(
+          x => Either.Right(x),
+          () => Either.Left(Seq.of('Route compile error.'))
+        );
       }
     },
     ParseRequest: request => {
@@ -76,13 +79,22 @@ function interpreter(free) {
     },
     ParseUrl: request => {
       const to = request.rmap(x => {
-        return url.compile(x).map(y => Tree.fromSeq(y));
+        return url.compile(x)
+          .map(y => Tree.fromSeq(y))
+          .map(y => Tree(Option.None, y));
       });
-      return Either.of(to);
+      return to.rfold(x => {
+        return x.map(y => {
+          return Request(to.method, y);
+        });
+      });
     },
     Match: (routes, request) => {
-      console.log(request);
-      return Either.of(null);
+      const match = routes.match(request.url);
+      return match.fold(
+        x => Either.Right(x),
+        () => Either.Left(Seq.of('Route match error.'))
+      );
     }
   });
 }

@@ -29,6 +29,10 @@ function matchRoute(routes, request) {
   });
 }
 
+function internalServerError(response) {
+  // ??
+}
+
 function main() {
     const routes = router.get()
               .route('/1/2/3')
@@ -36,7 +40,16 @@ function main() {
               .route('/a/b/c'),
           paths = router.compile(createRoutes(routes)),
           handle = (req, res) => {
-            router.compile(matchRoute(paths, req));
+            // Handle the paths
+            paths.fold(
+              x => internalServerError(res),
+              y => {
+                router.compile(matchRoute(y, req)).fold(
+                  x => internalServerError(res),
+                  y => {} // call function!
+                );
+              }
+            );
           },
           start = (port) => {
             console.log("Listening on port:", port);

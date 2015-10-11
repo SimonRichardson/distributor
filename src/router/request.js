@@ -12,4 +12,12 @@ Request.prototype.rmap = function(f) {
   return Request(this.method, f(this.url));
 };
 
+Request.prototype.lfold = function(f) {
+    return f(this.method);
+};
+
+Request.prototype.rfold = function(g) {
+    return g(this.url);
+};
+
 module.exports = Request;

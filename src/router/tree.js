@@ -144,4 +144,9 @@ Tree.prototype.combine = function(f, b) {
   return Tree(Option.None, go(trim(this), trim(b)));
 };
 
+Tree.prototype.match = function(b) {
+  console.log(b);
+  return Option.None;
+};
+
 module.exports = Tree;
