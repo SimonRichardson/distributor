@@ -83,22 +83,18 @@ Tree.prototype.merge = function(b) {
 };
 
 Tree.prototype.combine = function(f, b) {
-  const match = (a, b) => {
-      return a.chain(x => b.chain(y => {
-        return f(x, y) ? Option.Some(x) : Option.None;
-      }));
-    },
+  const equals = match(f),
     truthy = x => x.fold(constant(true), constant(false)),
     difference = (a, b) => {
       return a.foldl((acc, x) => {
         return acc.snoc(b.partition(y => {
-          return truthy(match(x.value, y.value));
+          return truthy(equals(x.value, y.value));
         }));
       }, Seq.empty());
     },
     merge = a => b => {
       return a.foldl((acc, x) => {
-        const index = acc.findIndex(y => match(x.value, y.value));
+        const index = acc.findIndex(y => equals(x.value, y.value));
         return index.cata({
           Some: y => {
             // It's not actually unsafe, because we check the item exists at the index.
@@ -118,12 +114,9 @@ Tree.prototype.combine = function(f, b) {
       };
       return nonEmpty(b).fold(x => a.concat(x), constant(a));
     },
-    trim = x => {
-      return x.value.fold(_ => Seq(x), () => x.nodes);
-    },
-    go = function(a, b) {
-      if(a.length() < 1) return b;
-      else if(b.length() < 1) return a;
+    go = (a, b) => {
+      if (a.length() < 1) return b;
+      else if (b.length() < 1) return a;
       else {
         const sequence = difference(a, b).foldl((acc, x) => {
             return Tuple2(concat(acc._1, x._1), concat(acc._2, x._2));
@@ -144,9 +137,44 @@ Tree.prototype.combine = function(f, b) {
   return Tree(Option.None, go(trim(this), trim(b)));
 };
 
-Tree.prototype.match = function(b) {
-  console.log(b);
-  return Option.None;
+Tree.prototype.match = function(f, b) {
+  const equals = match(f),
+    len = (a, b) => {
+      return a.length() < 1 && b.length() >= 1;
+    },
+    first = a => {
+      return a.head().fold(b => Seq.of(b), () => Seq.empty());
+    },
+    go = (a, b) => {
+      if (len(a, b) || len(b, a)) return Option.None;
+      else {
+        const res = a.foldl((acc, x) => {
+          return acc.fold(constant(acc), () => {
+            return b.foldl((acc, y) => {
+              return acc.fold(constant(acc), () => {
+                return equals(x.value, y.value).map(constant(Tuple2(x.nodes, y.nodes)));
+              });
+            }, acc);
+          });
+        }, Option.None).map(x => {
+          return go(x._1, x._2);
+        });
+        return res;
+      }
+    };
+  return go(trim(this), trim(b));
 };
+
+function match(f) {
+  return (a, b) => {
+    return a.chain(x => b.chain(y => {
+      return f(x, y) ? Option.Some(x) : Option.None;
+    }));
+  };
+}
+
+function trim(x) {
+  return x.value.fold(_ => Seq(x), () => x.nodes);
+}
 
 module.exports = Tree;

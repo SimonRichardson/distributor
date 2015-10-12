@@ -81,7 +81,7 @@ function interpreter(free) {
       const to = request.rmap(x => {
         return url.compile(x)
           .map(y => Tree.fromSeq(y))
-          .map(y => Tree(Option.None, y));
+          .map(y => Tree(Option.None, Seq.of(y)));
       });
       return to.rfold(x => {
         return x.map(y => {
@@ -90,7 +90,8 @@ function interpreter(free) {
       });
     },
     Match: (routes, request) => {
-      const match = routes.match(request.url);
+      const match = routes.match((a, b) => a.equals(b), request.url);
+      console.log('-match', match);
       return match.fold(
         x => Either.Right(x),
         () => Either.Left(Seq.of('Route match error.'))
