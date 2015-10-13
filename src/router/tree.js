@@ -2,7 +2,6 @@
 
 const daggy  = require('daggy'),
       Option = require('fantasy-options'),
-      These  = require('fantasy-these'),
       C      = require('fantasy-combinators'),
       arrays = require('fantasy-arrays'),
       tuples = require('fantasy-tuples'),
@@ -15,6 +14,7 @@ const daggy  = require('daggy'),
       unsafe = arrays.unsafe.seq,
 
       Tuple2 = tuples.Tuple2,
+      Tuple3 = tuples.Tuple3,
         
       Tree = daggy.tagged('value', 'nodes');
 
@@ -44,10 +44,21 @@ Tree.prototype.length = function() {
   return this.nodes.length();
 };
 
-Tree.prototype.depth = function() {
+Tree.prototype.size = function() {
   return this.nodes.foldl((acc, x) => {
-    return acc + x.depth();
+    return acc + x.size();
   }, 1);
+};
+
+Tree.prototype.depth = function() {
+  const max = a => {
+      return a.foldl((acc, x) => {
+        return x > acc ? x : acc;
+      }, 0);
+    };
+  return 1 + this.length() + max(this.nodes.foldl((acc, x) => {
+    return acc.snoc(x.depth());
+  }, Seq.empty()));
 };
 
 Tree.prototype.foldl = function(f, acc) {
@@ -59,50 +70,37 @@ Tree.prototype.foldl = function(f, acc) {
   }));
 };
 
-Tree.prototype.match = function(f) {
-  const go = function(l, t, c) {
-    return t.length() < 1 ? l :
-      f(a, t.x, c).cata({
-        Some: x => {
-          return t.y.foldl((acc, a) => {
-            return a.length() < 1 ? acc : go(acc, a, c+1);
-          });
-        },
-        None: constant(l)
-      });
-  };
-  return go(Seq.empty(), this, 0);
-};
-
 Tree.prototype.nonEmpty = function() {
   return this.value.map(constant(this));
 };
 
-Tree.prototype.merge = function(b) {
-  return this.combine((a, b) => a.equals(b), b);
+Tree.prototype.merge = function(g, b) {
+  return this.combine((a, b) => a.equals(b), g, b);
 };
 
-Tree.prototype.combine = function(f, b) {
+Tree.prototype.combine = function(f, g, b) {
   const equals = match(f),
-    truthy = x => x.fold(constant(true), constant(false)),
+    truthy = (a, b) => equals(a, b).fold(constant(true), constant(false)),
     difference = (a, b) => {
       return a.foldl((acc, x) => {
         return acc.snoc(b.partition(y => {
-          return truthy(equals(x.value, y.value));
+          return truthy(x.value, y.value);
         }));
       }, Seq.empty());
     },
     merge = a => b => {
       return a.foldl((acc, x) => {
-        const index = acc.findIndex(y => equals(x.value, y.value));
+        const index = acc.findIndex(y => truthy(x.value, y.value));
         return index.cata({
           Some: y => {
             // It's not actually unsafe, because we check the item exists at the index.
             const value = unsafe.unsafeIndex(acc, y),
-                  r = acc.updateAt(y, Tree(x.value, x.nodes.concat(value.nodes)));
+                  r = acc.updateAt(y, Tree(g(x.value, value.value), x.nodes.concat(value.nodes)));
             return r.fold(identity, constant(acc));
           },
-          None: () => x.value.fold(_ => acc.snoc(x), constant(acc))
+          None: () => {
+            return x.value.fold(_ => acc.snoc(x), constant(acc));
+          }
         });
       }, b);
     },
@@ -114,11 +112,20 @@ Tree.prototype.combine = function(f, b) {
       };
       return nonEmpty(b).fold(x => a.concat(x), constant(a));
     },
+    filter = (a, b) => {
+      return a.foldl((acc, x) => {
+        return b.find(y => truthy(x.value, y.value)).fold(
+          constant(acc),
+          () => acc.snoc(x)
+        );
+      }, Seq.empty());
+    },
     go = (a, b) => {
       if (a.length() < 1) return b;
       else if (b.length() < 1) return a;
       else {
-        const sequence = difference(a, b).foldl((acc, x) => {
+        const xx = difference(a, b);
+        const sequence = xx.foldl((acc, x) => {
             return Tuple2(concat(acc._1, x._1), concat(acc._2, x._2));
           }, Tuple2(Seq.empty(), Seq.empty())),
 
@@ -130,40 +137,50 @@ Tree.prototype.combine = function(f, b) {
             }, Seq.empty())));
           }, Seq.empty());
 
-        return recursive.concat(sequence._2);
+        return recursive.concat(filter(sequence._2, recursive));
       }
     };
 
   return Tree(Option.None, go(trim(this), trim(b)));
 };
 
-Tree.prototype.match = function(f, b) {
+Tree.prototype.match = function(f, g, b) {
   const equals = match(f),
-    len = (a, b) => {
-      return a.length() < 1 && b.length() >= 1;
-    },
     first = a => {
       return a.head().fold(b => Seq.of(b), () => Seq.empty());
     },
     go = (a, b) => {
-      if (len(a, b) || len(b, a)) return Option.None;
+      if (outsideRange(a, b) || outsideRange(b, a)) return Option.None;
       else {
-        const res = a.foldl((acc, x) => {
+        return a.foldl((acc, x) => {
           return acc.fold(constant(acc), () => {
+
             return b.foldl((acc, y) => {
               return acc.fold(constant(acc), () => {
-                return equals(x.value, y.value).map(constant(Tuple2(x.nodes, y.nodes)));
+                return equals(x.value, y.value).map(constant(Tuple3(x.value, x.nodes, y.nodes)));
               });
             }, acc);
           });
-        }, Option.None).map(x => {
-          return go(x._1, x._2);
+        }, Option.None).chain(tuple => {
+          return maybe(
+            () => tuple._1.chain(g), 
+            () => go(tuple._2, tuple._3),
+            tuple._3.length() < 1
+          );
         });
-        return res;
       }
     };
+
   return go(trim(this), trim(b));
 };
+
+function outsideRange(a, b) {
+  return a.length() < 1 && b.length() >= 1;
+}
+
+function maybe(f, g, b) {
+  return b ? f() : g();
+}
 
 function match(f) {
   return (a, b) => {

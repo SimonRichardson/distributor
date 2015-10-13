@@ -8,7 +8,8 @@ const daggy = require('daggy'),
         Compile     : ['routes'],
         ParseRequest: ['request'],
         ParseUrl    : ['request'],
-        Match       : ['routes', 'request']
+        Match       : ['routes', 'request'],
+        Caller      : ['node']
       });
 
 module.exports = {
@@ -16,5 +17,6 @@ module.exports = {
   compile     : routes  => Free.liftFC(Router.Compile(routes)),
   parseRequest: request => Free.liftFC(Router.ParseRequest(request)),
   parseUrl    : request => Free.liftFC(Router.ParseUrl(request)),
-  match       : (routes, request) => Free.liftFC(Router.Match(routes, request))
+  match       : (routes, request) => Free.liftFC(Router.Match(routes, request)),
+  caller      : node    => Free.liftFC(Router.Caller(node))
 };
