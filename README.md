@@ -1,4 +1,4 @@
--> ![](images/header.png) <-
+<img align="center" src="images/header.png" alt="" />
 
 # Distributor
 
