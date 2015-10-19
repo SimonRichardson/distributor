@@ -1,6 +1,8 @@
 const router = require('./router/router'),
       server = require('./server/server'),
       
+      debug = require('./debug'),
+
       IO     = require('fantasy-io'),
       Option = require('fantasy-options');
 
@@ -24,29 +26,36 @@ function matchRoute(routes, request) {
   const dsl = router.dsl;
   return dsl.parseRequest(request).chain(x => {
     return dsl.parseUrl(x).chain(y => {
-      return dsl.match(routes, y);
+      return dsl.match(routes, y).chain(z => {
+        return dsl.caller(z);
+      });
     });
   });
 }
 
-function internalServerError(response) {
-  // ??
+function internalServerError(request, response) {
+  console.log('InternalServerError');
+}
+
+function notFound(request, response) {
+  console.log('NotFound');
 }
 
 function main() {
     const routes = router.get()
-              .route('/1/2/3')
-              .route('/1/2/a')
-              .route('/a/b/c'),
+              .route('/1/2/a', () => console.log("A"))
+              .route('/1/2/3', () => console.log("B"))
+              .route('/1/2/3', () => console.log("C")),
           paths = router.compile(createRoutes(routes)),
           handle = (req, res) => {
             // Handle the paths
             paths.fold(
-              x => internalServerError(res),
+              x => internalServerError(req, res),
               y => {
+                // Route matcher
                 router.compile(matchRoute(y, req)).fold(
-                  x => internalServerError(res),
-                  y => {} // call function!
+                  x => notFound(req, res),
+                  y => y.getOrElse(notFound)(req, res)
                 );
               }
             );
@@ -57,7 +66,8 @@ function main() {
             // DEBUG
             setTimeout(() => {
               var http = require('http');
-              http.get('http://127.0.0.1:8080/a/b/c', () => {});
+              http.get('http://127.0.0.1:8080/1/2/3', () => {})
+                .on('error', (err) => console.log(err));
             }, 100);
           },
           program = createServer(handle, 8080, Option.Some(start)),

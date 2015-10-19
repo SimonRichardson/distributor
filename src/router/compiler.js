@@ -10,21 +10,63 @@ const Free   = require('fantasy-frees').Free,
       path    = require('./../path/path'),
       url     = require('./../path/url'),
 
+      builder = require('./builder'),
       Tree    = require('./tree'),
       Request = require('./request'),
 
+      Node = builder.Node,
+
+      compose  = C.compose,
       constant = C.constant,
       identity = C.identity,
 
       Tuple2 = tuples.Tuple2;
 
 function extract(x) {
-  return x.foldl((acc, x) => {
+  return x.foldl((acc, x) => {    
     return x.cata({
       Right: y => acc.snoc(y),
       Left: constant(acc)
     });
   }, Seq.empty());
+}
+
+function sequenceCalls(x) {
+  return x.map(node => {
+    const route = node.route,
+          calls = node.calls,
+          match = (a, b) => {
+            return a === b ? Option.Some(a) : Option.None;
+          },
+          go = (x, index, depth) => {
+            const value = x.value.map(y => {
+                return Node(
+                  y, 
+                  match(index, depth).map(constant(calls)).getOrElse(Seq.empty())
+                );
+              }),
+              nodes = x.nodes.foldl((acc, x) => {
+                return acc.snoc(go(x, index + 1, depth));
+              }, Seq.empty());
+
+            return Tree(value, nodes);
+          };
+
+    return route.map(tree => {
+      return go(tree, 1, tree.size());
+    });
+  });
+}
+
+function sequence(x) {
+  const go = (a, b) => {
+    const value = a.map(node => Node(node, Seq.empty())),
+          nodes = b.foldl((acc, x) => {
+            return acc.snoc(go(x.value, x.nodes));
+          }, Seq.empty());
+    return Tree(value, nodes);
+  };
+  return go(x.value, x.nodes);
 }
 
 function errors(x) {
@@ -44,17 +86,21 @@ function errors(x) {
 function interpreter(free) {
   return free.cata({
     ParseRoutes: routes => {
-      const trees = routes
-        .rmap(path.compile)
-        .rmap(x => {
-          return x.map(y => Tree.fromSeq(y));
+      const trees = routes.rmap(x => {
+        return x.lmap(path.compile);
+      }).rmap(x => {
+        return x.lmap(y => {
+          return y.map(z => {
+            return Tree.fromSeq(z);
+          });
         });
+      });
 
       return Either.of(trees);
     },
     Compile: trees => {
       const all = trees.routes,
-        extracted = extract(all);
+        extracted = compose(extract)(sequenceCalls)(all);
 
       if (extracted.length() < all.length()) {
         return errors(all);
@@ -64,7 +110,7 @@ function interpreter(free) {
           }, Seq.empty());
 
         // fold into a tree
-        return root.reducel((acc, x) => acc.merge(x)).fold(
+        return root.reducel((acc, x) => acc.merge(join, x)).fold(
           x => Either.Right(x),
           () => Either.Left(Seq.of('Route compile error.'))
         );
@@ -80,7 +126,7 @@ function interpreter(free) {
     ParseUrl: request => {
       const to = request.rmap(x => {
         return url.compile(x)
-          .map(y => Tree.fromSeq(y))
+          .map(compose(sequence)(Tree.fromSeq))
           .map(y => Tree(Option.None, Seq.of(y)));
       });
       return to.rfold(x => {
@@ -90,13 +136,29 @@ function interpreter(free) {
       });
     },
     Match: (routes, request) => {
-      const match = routes.match((a, b) => a.equals(b), request.url);
-      console.log('-match', match);
+      const match = routes.match((a, b) => a.equals(b), extractCalls, request.url);
       return match.fold(
         x => Either.Right(x),
         () => Either.Left(Seq.of('Route match error.'))
       );
-    }
+    },
+    Caller: node => Either.Right(node.calls.head())
+  });
+}
+
+function extractCalls(a) {
+  return a.calls.length() < 1 ? Option.None : Option.of(a);
+}
+
+function join(a, b) {
+  return a.map(x => {
+    return x.rmap(y => {
+      return b.chain(i => {
+        return i.rfold(identity, j => {
+          return y.concat(j);
+        });
+      });
+    });
   });
 }
 
