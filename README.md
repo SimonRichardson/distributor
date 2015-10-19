@@ -1,4 +1,4 @@
-->![](images/header.png)<-
+-> ![](images/header.png) <-
 
 # Distributor
 
