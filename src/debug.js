@@ -44,3 +44,14 @@ Tuple2.prototype.toString = function() {
 Tuple3.prototype.toString = function() {
   return 'Tuple3(' + this._1.toString() + ', ' + this._2.toString() + ', ' + this._3.toString() + ')';
 };
+
+function main() {
+  // DEBUG
+  setTimeout(() => {
+    var http = require('http');
+    http.get('http://127.0.0.1:8080/1/2/3', () => {})
+      .on('error', (err) => console.log(err));
+  }, 100);
+}
+
+main();

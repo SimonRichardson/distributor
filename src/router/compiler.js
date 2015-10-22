@@ -71,14 +71,17 @@ function sequence(x) {
 
 function errors(x) {
   return x.zip(Seq.range(0, x.length())).foldl((acc, y) => {
-    return y._1.cata({
-      Left: z => {
-        return acc.bimap(
-          a => a.concat(Seq.of('Invalid `' + z.x.toString() + '` at index `' + y._2 + '`')),
-          identity
-        );
-      },
-      Right: constant(acc)
+    const index = y._2;
+    return y._1.lfold(z => {
+      return z.cata({
+        Left: z => {
+          return acc.bimap(
+            a => a.concat(Seq.of('Invalid `' + z.x.toString() + '` at index `' + index + '`')),
+            identity
+          );
+        },
+        Right: constant(acc)
+      });
     });
   }, Either.Left(Seq.of('Path compile errors.')));
 }
