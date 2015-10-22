@@ -4,7 +4,8 @@ const C     = require('fantasy-combinators'),
       daggy = require('daggy'),
       Lens  = require('fantasy-lenses').Lens,
 
-      constant  = C.constant
+      compose  = C.compose,
+      constant = C.constant,
 
       lens = Lens.objectLens('statusCode');
 
