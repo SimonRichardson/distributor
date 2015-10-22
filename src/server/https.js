@@ -19,9 +19,18 @@ function interpreter(free) {
         };
       });
     },
+    Compile: queries => {
+      return IO(() => {
+        return router.compile(program.create(queries));
+      });
+    },
     Create: (options, handle) => {
       return IO(() => {
-        return https.createServer(options, (req, res) => handle(req, res));
+        const directive = handle.cata({
+          Left: responses.internalError,
+          Right: x => routes.match(x)
+        });
+        return https.createServer(options, (req, res) => directive(req, res));
       });
     },
     Listen: (x, port, on) => {
