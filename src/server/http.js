@@ -6,10 +6,10 @@ const IO   = require('fantasy-io'),
 
       http = require('http'),
 
-      program   = require('./program'),
-      routes    = require('./routes'),
-      router    = require('./../router/router'),
-      responses = require('./responses'),
+      program = require('./program'),
+      routes  = require('./routes'),
+      router  = require('./../router/router'),
+      errors  = require('./../documents/json/errors'),
 
       id       = C.identity,
       constant = C.constant;
@@ -27,10 +27,10 @@ function interpreter(free) {
     Create: (options, handle) => {
       return IO(() => {
         const directive = handle.cata({
-          Left: responses.internalError,
+          Left: errors.internalError,
           Right: x => routes.match(x)
         });
-        return http.createServer((req, res) => directive(req, res));
+        return http.createServer((req, res) => directive(req, res).unsafePerform());
       });
     },
     Listen: (x, port, on) => {

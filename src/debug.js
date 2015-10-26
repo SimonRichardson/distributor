@@ -48,9 +48,18 @@ Tuple3.prototype.toString = function() {
 function main() {
   // DEBUG
   setTimeout(() => {
-    var http = require('http');
-    http.get('http://127.0.0.1:8080/1/2/3', () => {})
-      .on('error', (err) => console.log(err));
+    const http = require('http');
+    
+    http.get('http://127.0.0.1:8080/1/2/3/4', res => {
+      console.log(res.statusCode);
+      console.log(JSON.stringify(res.headers, null, 2));
+
+      var body = '';
+      res.on('data', chunk => {
+        body += chunk;
+      });
+      res.on('end', () => console.log(JSON.stringify(JSON.parse(body), null, 2)));
+    }).on('error', err => console.log(err));
   }, 100);
 }
 

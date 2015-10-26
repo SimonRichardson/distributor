@@ -30,7 +30,7 @@ function interpreter(free) {
           Left: responses.internalError,
           Right: x => routes.match(x)
         });
-        return https.createServer(options, (req, res) => directive(req, res));
+        return https.createServer(options, (req, res) => directive(req, res).unsafePerform());
       });
     },
     Listen: (x, port, on) => {
