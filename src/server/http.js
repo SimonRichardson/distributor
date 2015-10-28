@@ -8,6 +8,7 @@ const IO   = require('fantasy-io'),
 
       program = require('./program'),
       routes  = require('./routes'),
+      async   = require('./../utils/async'),
       router  = require('./../router/router'),
       errors  = require('./../documents/json/errors'),
 
@@ -28,9 +29,13 @@ function interpreter(free) {
       return IO(() => {
         const directive = handle.cata({
           Left: errors.internalError,
-          Right: x => routes.match(x)
+          Right: x => routes.match(errors.notFound, x)
         });
-        return http.createServer((req, res) => directive(req, res).unsafePerform());
+        return http.createServer((req, res) => {
+          async(() => {
+            return directive(req, res);
+          });
+        });
       });
     },
     Listen: (x, port, on) => {

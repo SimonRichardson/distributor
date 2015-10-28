@@ -7,7 +7,14 @@ const IO   = require('fantasy-io'),
       fs    = require('fs'),
       https = require('https'),
 
-      id = C.identity;
+      program = require('./program'),
+      routes  = require('./routes'),
+      async   = require('./../utils/async'),
+      router  = require('./../router/router'),
+      errors  = require('./../documents/json/errors'),
+
+      id       = C.identity,
+      constant = C.constant;
 
 function interpreter(free) {
   return free.cata({
@@ -27,10 +34,14 @@ function interpreter(free) {
     Create: (options, handle) => {
       return IO(() => {
         const directive = handle.cata({
-          Left: responses.internalError,
-          Right: x => routes.match(x)
+          Left: errors.internalError,
+          Right: x => routes.match(errors.notFound, x)
         });
-        return https.createServer(options, (req, res) => directive(req, res).unsafePerform());
+        return https.createServer(options, (req, res)  => {
+          async(() => {
+            return directive(req, res);
+          });
+        });
       });
     },
     Listen: (x, port, on) => {

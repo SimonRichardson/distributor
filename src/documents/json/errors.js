@@ -16,7 +16,7 @@ function write(response, res) {
       for (var i in x) {
         res[i] = x[i];
       }
-      return res;  
+      return res;
     },
     insertLength = (headers, len) => {
       const x = copy(headers);

@@ -17,7 +17,7 @@ module.exports = {
 
   badRequest  : res => doc.statusCode(400, res),
   unauthorized: res => doc.statusCode(401, res),
-  notFound    : res => doc.statusCode(403, res),
+  notFound    : res => doc.statusCode(404, res),
 
   internalServerError: res => doc.statusCode(500, res)
 };

@@ -59,7 +59,7 @@ function main() {
         body += chunk;
       });
       res.on('end', () => console.log(JSON.stringify(JSON.parse(body), null, 2)));
-    }).on('error', err => console.log(err));
+    }).on('error', err => console.log('ERROR', err));
   }, 100);
 }
 

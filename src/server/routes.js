@@ -1,15 +1,14 @@
 'use strict';
 
 const router  = require('./../router/router'),
-      program = require('./program'),
-      errors  = require('./../documents/json/errors');
+      program = require('./program');
 
-function match(y) {
+function match(f, y) {
   return (req, res) => {
     // Route matcher
     return router.compile(program.match(y, req)).fold(
-      x => errors.notFound(req, res),
-      y => y.getOrElse(errors.notFound)(req, res)
+      x => f(req, res),
+      y => y.getOrElse(f)(req, res)
     );
   };
 }
