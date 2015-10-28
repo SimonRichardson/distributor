@@ -10,5 +10,5 @@ module.exports = {
     https  : https,
 
     // Default run is to http.
-    run: x => http.run(x)
+    run: (x, y) => http.run(x, y)
 };

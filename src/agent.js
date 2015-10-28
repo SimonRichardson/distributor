@@ -1,6 +1,7 @@
 'use strict';
 
-const router = require('./router/router'),
+const errors = require('./documents/json/errors'),
+      router = require('./router/router'),
       server = require('./server/server'),
       
       debug = require('./debug'),
@@ -31,7 +32,7 @@ function main() {
 
           program = createServer(routes, 8080, Option.None);
 
-    server.run(program).unsafePerform()
+    server.run(errors, program).unsafePerform()
 }
 
 main();

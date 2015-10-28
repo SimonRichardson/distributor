@@ -16,42 +16,44 @@ const IO   = require('fantasy-io'),
       id       = C.identity,
       constant = C.constant;
 
-function interpreter(free) {
-  return free.cata({
-    Options: (options) => {
-      return IO(() => {
-        return {
-          key : fs.readFileSync(options.key),
-          cert: fs.readFileSync(options.cert)
-        };
-      });
-    },
-    Compile: queries => {
-      return IO(() => {
-        return router.compile(program.create(queries));
-      });
-    },
-    Create: (options, handle) => {
-      return IO(() => {
-        const directive = handle.cata({
-          Left: errors.internalError,
-          Right: x => routes.match(errors.notFound, x)
+function interpreter(errors) {
+  return free => {
+    return free.cata({
+      Options: (options) => {
+        return IO(() => {
+          return {
+            key : fs.readFileSync(options.key),
+            cert: fs.readFileSync(options.cert)
+          };
         });
-        return https.createServer(options, (req, res)  => {
-          async(() => {
-            return directive(req, res);
+      },
+      Compile: queries => {
+        return IO(() => {
+          return router.compile(program.create(queries));
+        });
+      },
+      Create: (options, handle) => {
+        return IO(() => {
+          const directive = handle.cata({
+            Left: errors.internalError,
+            Right: x => routes.match(errors.notFound, x)
+          });
+          return https.createServer(options, (req, res)  => {
+            async(() => {
+              return directive(req, res);
+            });
           });
         });
-      });
-    },
-    Listen: (x, port, on) => {
-      return IO(() => {
-        return x.listen(port, () => on.map(f => f(port)));
-      });
-    }
-  });
+      },
+      Listen: (x, port, on) => {
+        return IO(() => {
+          return x.listen(port, () => on.map(f => f(port)));
+        });
+      }
+    });
+  };
 }
 
 module.exports = {
-  run: x => Free.runFC(x, interpreter, IO)
+  run: (x, y) => Free.runFC(y, interpreter(x), IO)
 };
