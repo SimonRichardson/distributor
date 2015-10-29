@@ -13,10 +13,10 @@ const daggy = require('daggy'),
       });
 
 module.exports = {
-  parseRoutes : routes  => Free.liftFC(Router.ParseRoutes(routes)),
-  compile     : routes  => Free.liftFC(Router.Compile(routes)),
-  parseRequest: request => Free.liftFC(Router.ParseRequest(request)),
-  parseUrl    : request => Free.liftFC(Router.ParseUrl(request)),
+  parseRoutes : routes            => Free.liftFC(Router.ParseRoutes(routes)),
+  compile     : routes            => Free.liftFC(Router.Compile(routes)),
+  parseRequest: request           => Free.liftFC(Router.ParseRequest(request)),
+  parseUrl    : request           => Free.liftFC(Router.ParseUrl(request)),
   match       : (routes, request) => Free.liftFC(Router.Match(routes, request)),
-  caller      : node    => Free.liftFC(Router.Caller(node))
+  caller      : node              => Free.liftFC(Router.Caller(node))
 };

@@ -6,6 +6,7 @@ const daggy    = require('daggy'),
       Seq      = require('fantasy-arrays').Seq,
       C        = require('fantasy-combinators'),
       Either   = require('fantasy-eithers'),
+      Option   = require('fantasy-options'),
 
       utils    = require('./utils'),
 
@@ -17,7 +18,9 @@ const daggy    = require('daggy'),
         Variable: ['x'],
         Wildcard: [],
         Empty   : []
-      });
+      }),
+
+      pathRegExpChars = /^[a-zA-Z0-9\-\.\_\~\:\/\?\#\[\]\@\!\$\&\'\(\)\*\+\,\;\=]*$/;
 
 Path.prototype.equals = function(b) {
   const eq = x => y => {
@@ -85,10 +88,14 @@ function normalise() {
 }
 
 function type(x) {
-  return utils.head(x).map(y => {
-    return y === ':' ? Path.Variable(utils.tail(x)) : 
-           y === '*' ? Path.Wildcard :
-           Path.Name(utils.nil(x));
+  const validName = x => {
+    return x.match(pathRegExpChars) ? Option.Some(Path.Name(utils.nil(x))) : Option.None;
+  };
+  return utils.head(x).chain(y => {
+    return y === ':' ? Option.Some(Path.Variable(utils.tail(x))) : 
+           y === '*' ? Option.Some(Path.Wildcard) :
+           y === '' ? Option.Some(Path.Empty) : 
+           validName(x);
   }).getOrElse(Path.Empty);
 };
 

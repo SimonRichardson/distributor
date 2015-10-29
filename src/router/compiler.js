@@ -139,7 +139,9 @@ function interpreter(free) {
       });
     },
     Match: (routes, request) => {
-      const match = routes.match((a, b) => a.equals(b), extractCalls, request.url);
+      const match = routes.match((a, b) => {
+        return pathMatchUrl(a.route, b.route);
+      }, extractCalls, request.url);
       return match.fold(
         x => Either.Right(x),
         () => Either.Left(Seq.of('Route match error.'))
@@ -162,6 +164,31 @@ function join(a, b) {
         });
       });
     });
+  });
+}
+
+function pathMatchUrl(a, b) {
+  const eq = x => y => {
+    return x.fold(
+      a  => y.fold(b => a === b, constant(false)),
+      () => y.fold(constant(false), constant(true))
+    );
+  };
+  return a.cata({
+    Name    : x => {
+      return b.cata({
+        Name    : eq(x),
+        Empty   : constant(false),
+      });
+    },
+    Variable: x => {
+      return b.cata({
+        Name    : constant(true),
+        Empty   : constant(false),
+      });
+    },
+    Wildcard: () => true,
+    Empty   : () => false
   });
 }
 

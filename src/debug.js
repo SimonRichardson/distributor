@@ -50,7 +50,7 @@ function main() {
   setTimeout(() => {
     const http = require('http');
     
-    http.get('http://127.0.0.1:8080/1/2/3/4', res => {
+    http.get('http://127.0.0.1:8080/1/2/hello', res => {
       console.log(res.statusCode);
       console.log(JSON.stringify(res.headers, null, 2));
 
