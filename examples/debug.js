@@ -5,7 +5,7 @@ const C      = require('fantasy-combinators'),
       Either = require('fantasy-eithers'),
       Seq    = require('fantasy-arrays').Seq,
       tuples = require('fantasy-tuples'),
-      Tree   = require('./router/tree'),
+      Tree   = require('./../src/router/tree'),
 
       constant = C.constant,
 

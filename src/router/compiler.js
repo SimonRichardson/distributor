@@ -89,14 +89,15 @@ function errors(x) {
 function interpreter(free) {
   return free.cata({
     ParseRoutes: routes => {
-      const trees = routes.rmap(x => {
-        return x.lmap(path.compile);
-      }).rmap(x => {
-        return x.lmap(y => {
-          return y.map(z => {
-            return Tree.fromSeq(z);
-          });
-        });
+
+      const trees = routes.rmap(route => {
+        return route
+            .rmap(x => x.lmap(path.compile))
+            .rmap(x => {
+              return x.lmap(y => {
+                return y.map(z => Tree.fromSeq(z));
+              });
+            });
       });
 
       return Either.of(trees);
@@ -187,8 +188,8 @@ function pathMatchUrl(a, b) {
         Empty   : constant(false),
       });
     },
-    Wildcard: () => true,
-    Empty   : () => false
+    Wildcard: constant(true),
+    Empty   : constant(false)
   });
 }
 

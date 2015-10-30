@@ -8,9 +8,13 @@ module.exports = {
     dsl     : dsl,
     compiler: compiler,
 
-    get : () => builder.build('get'),
-    post: () => builder.build('post'),
-    put : () => builder.build('put'),
+    del    : () => builder.build('delete'),
+    get    : () => builder.build('get'),
+    head   : () => builder.build('head'),
+    patch  : () => builder.build('patch'),
+    post   : () => builder.build('post'),
+    put    : () => builder.build('put'),
+    options: () => builder.build('options'),
 
     compile: x => compiler.run(x)
 };
